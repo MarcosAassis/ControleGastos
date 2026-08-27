@@ -1,8 +1,10 @@
 import { CalendarClock, LayoutDashboard, LogOut, Receipt, Target, Wallet } from "lucide-react";
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useMonth } from "../context/MonthContext.jsx";
 import { monthLabel } from "../utils/format.js";
+import MonthHistory from "./MonthHistory.jsx";
 
 const links = [
   { to: "/", label: "Início", icon: LayoutDashboard },
@@ -15,6 +17,7 @@ const links = [
 export default function Layout() {
   const { year, month, prev, next } = useMonth();
   const { user, logout } = useAuth();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
@@ -41,9 +44,13 @@ export default function Layout() {
           <button type="button" onClick={prev} className="px-2 text-lg leading-none">
             ‹
           </button>
-          <span className="min-w-[8.5rem] text-center text-sm font-semibold capitalize">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(true)}
+            className="min-w-[8.5rem] rounded-full px-2 py-1 text-center text-sm font-semibold capitalize"
+          >
             {monthLabel(year, month)}
-          </span>
+          </button>
           <button type="button" onClick={next} className="px-2 text-lg leading-none">
             ›
           </button>
@@ -73,6 +80,9 @@ export default function Layout() {
           ))}
         </div>
       </nav>
+      {historyOpen && (
+        <MonthHistory year={year} month={month} onClose={() => setHistoryOpen(false)} />
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..models import DailyEarning, FixedExpense, FixedExpensePayment, VariableExpense
 from . import get_or_create_goals, get_or_create_routine
-from .agenda import load_overrides, parse_weekdays, working_dates
+from .agenda import dates_in_month, load_overrides, parse_weekdays, working_dates
 
 
 def _round_money(value: float) -> float:
@@ -167,4 +167,97 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
             "ganho": _round_money(ganho_hoje),
             **hoje_status,
         },
+    }
+
+
+def _empty_day(iso: str) -> dict:
+    return {
+        "date": iso,
+        "ganhos": 0.0,
+        "gastos": 0.0,
+        "km": 0.0,
+        "lucro": 0.0,
+        "tem_ganho": False,
+        "tem_gasto": False,
+        "lancamentos": [],
+    }
+
+
+def montar_historico(db: Session, user_id: int, year: int, month: int) -> dict:
+    start, end = month_range(year, month)
+    days = {day.isoformat(): _empty_day(day.isoformat()) for day in dates_in_month(year, month)}
+
+    earnings = (
+        db.query(DailyEarning)
+        .filter(
+            DailyEarning.user_id == user_id,
+            DailyEarning.date >= start,
+            DailyEarning.date <= end,
+        )
+        .order_by(DailyEarning.date)
+        .all()
+    )
+    variables = (
+        db.query(VariableExpense)
+        .filter(
+            VariableExpense.user_id == user_id,
+            VariableExpense.date >= start,
+            VariableExpense.date <= end,
+        )
+        .order_by(VariableExpense.date)
+        .all()
+    )
+    expenses = db.query(FixedExpense).filter(FixedExpense.user_id == user_id).all()
+
+    for earning in earnings:
+        day = days[earning.date.isoformat()]
+        day["ganhos"] += earning.gross_amount
+        day["km"] += earning.km_driven
+        day["tem_ganho"] = True
+        day["lancamentos"].append(
+            {
+                "kind": "ganho",
+                "title": earning.notes or "Ganho do dia",
+                "amount": _round_money(earning.gross_amount),
+            }
+        )
+
+    for item in variables:
+        day = days[item.date.isoformat()]
+        day["gastos"] += item.amount
+        day["tem_gasto"] = True
+        day["lancamentos"].append(
+            {
+                "kind": "gasto",
+                "title": item.description or item.type,
+                "amount": _round_money(item.amount),
+            }
+        )
+
+    for expense in expenses:
+        if not expense.due_date:
+            continue
+        iso = expense.due_date.isoformat()
+        if iso not in days:
+            continue
+        day = days[iso]
+        day["gastos"] += expense.amount
+        day["tem_gasto"] = True
+        day["lancamentos"].append(
+            {
+                "kind": "gasto",
+                "title": expense.name,
+                "amount": _round_money(expense.amount),
+            }
+        )
+
+    for day in days.values():
+        day["ganhos"] = _round_money(day["ganhos"])
+        day["gastos"] = _round_money(day["gastos"])
+        day["km"] = _round_money(day["km"])
+        day["lucro"] = _round_money(day["ganhos"] - day["gastos"])
+
+    return {
+        "periodo": {"ano": year, "mes": month},
+        "dias": list(days.values()),
     }

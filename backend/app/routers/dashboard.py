@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import User
-from ..services.calculos import montar_dashboard
+from ..services.calculos import montar_dashboard, montar_historico
 
 router = APIRouter()
 
@@ -20,3 +20,14 @@ def get_dashboard(
 ):
     today = date.today()
     return montar_dashboard(db, user.id, ano or today.year, mes or today.month)
+
+
+@router.get("/historico")
+def get_historico(
+    ano: int | None = Query(default=None),
+    mes: int | None = Query(default=None, ge=1, le=12),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    today = date.today()
+    return montar_historico(db, user.id, ano or today.year, mes or today.month)

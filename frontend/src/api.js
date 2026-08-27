@@ -56,6 +56,7 @@ export const api = {
     me: () => request("/api/auth/me"),
   },
   dashboard: (y, m) => request(`/api/dashboard?${qs(y, m)}`),
+  historico: (y, m) => request(`/api/dashboard/historico?${qs(y, m)}`),
   rotina: {
     get: (y, m) => request(`/api/rotina?${qs(y, m)}`),
     save: (body, y, m) =>
