@@ -120,3 +120,6 @@ def migrate_schema():
                     "ALTER TABLE work_day_overrides DROP CONSTRAINT IF EXISTS work_day_overrides_date_key"
                 )
             )
+
+        conn.execute(text("DROP TABLE IF EXISTS uber_oauth_states"))
+        conn.execute(text("DROP TABLE IF EXISTS uber_connections"))

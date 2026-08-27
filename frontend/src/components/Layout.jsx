@@ -1,6 +1,6 @@
-import { CalendarClock, LayoutDashboard, Link2, LogOut, Receipt, Target, Wallet } from "lucide-react";
+import { CalendarClock, LayoutDashboard, LogOut, Receipt, Target, Wallet } from "lucide-react";
 import { useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useMonth } from "../context/MonthContext.jsx";
 import { monthLabel } from "../utils/format.js";
@@ -31,23 +31,14 @@ export default function Layout() {
               Olá, {user?.name?.split(" ")[0] || "motorista"}
             </h1>
           </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/uber"
-              className="flex items-center gap-1 rounded-full border border-lime/40 bg-lime/10 px-3 py-2 text-xs font-semibold text-lime"
-            >
-              <Link2 size={14} />
-              Vincular Uber
-            </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="flex items-center gap-1 rounded-full border border-white/10 bg-night-800 px-3 py-2 text-xs font-semibold text-emerald-100/80"
-            >
-              <LogOut size={14} />
-              Sair
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="flex items-center gap-1 rounded-full border border-white/10 bg-night-800 px-3 py-2 text-xs font-semibold text-emerald-100/80"
+          >
+            <LogOut size={14} />
+            Sair
+          </button>
         </div>
         <div className="mt-3 flex items-center justify-center gap-2 rounded-full border border-white/10 bg-night-800 px-2 py-1">
           <button type="button" onClick={prev} className="px-2 text-lg leading-none">

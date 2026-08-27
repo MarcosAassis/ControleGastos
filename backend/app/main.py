@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine, migrate_schema
-from .routers import auth, dashboard, ganhos, gastos_fixos, gastos_variaveis, metas, rotina, uber
+from .routers import auth, dashboard, ganhos, gastos_fixos, gastos_variaveis, metas, rotina
 from .settings import CORS_ORIGIN_REGEX, CORS_ORIGINS
 
 Base.metadata.create_all(bind=engine)
@@ -32,7 +32,6 @@ app.include_router(
 app.include_router(metas.router, prefix="/api/metas", tags=["Metas"])
 app.include_router(ganhos.router, prefix="/api/ganhos", tags=["Ganhos"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
-app.include_router(uber.router, prefix="/api/uber", tags=["Uber"])
 
 
 @app.get("/")

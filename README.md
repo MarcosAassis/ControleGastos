@@ -52,11 +52,6 @@ Ordem: primeiro a API no Render, depois o site na Vercel.
    - `SECRET_KEY` = uma frase longa e aleatória (obrigatória com o login)
    - `RESEND_API_KEY` = chave da Resend (cadastro e recuperação de senha)
    - `RESEND_FROM` = remetente verificado, por exemplo `Gestão Financeira <noreply@seudominio.com>`
-   - `FRONTEND_URL` = URL da Vercel, sem barra no final
-   - `UBER_MOCK` = `false`
-   - `UBER_CLIENT_ID` e `UBER_CLIENT_SECRET` = do dashboard da Uber (nunca no frontend)
-   - `UBER_REDIRECT_URI` = `https://SEU-SERVICO.onrender.com/api/uber/callback` (igual ao cadastrado na Uber)
-   - `UBER_SCOPES` = `partner.accounts offline_access`
 4. Health check: `/api/health`
 
 Se o plano gratuito de Postgres não aparecer, use o plano mais barato. O Web Service gratuito do Render pode “dormir”; a primeira abertura do app demora alguns segundos.
@@ -85,10 +80,6 @@ Meta por hora   = Meta diária / Horas trabalhadas por dia
 ```
 
 O custo fixo diário usa a mesma divisão, considerando apenas as contas fixas.
-
-## Integração Uber (protótipo)
-
-Veja [docs/UBER.md](docs/UBER.md). Em produção use `UBER_MOCK=false` e as credenciais só no backend (Render).
 
 ## E-mail (Resend)
 

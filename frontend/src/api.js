@@ -57,11 +57,6 @@ export const api = {
   },
   dashboard: (y, m) => request(`/api/dashboard?${qs(y, m)}`),
   historico: (y, m) => request(`/api/dashboard/historico?${qs(y, m)}`),
-  uber: {
-    status: () => request("/api/uber/status"),
-    connect: () => request("/api/uber/connect"),
-    disconnect: () => request("/api/uber/disconnect", { method: "DELETE" }),
-  },
   rotina: {
     get: (y, m) => request(`/api/rotina?${qs(y, m)}`),
     save: (body, y, m) =>
