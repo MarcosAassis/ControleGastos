@@ -16,6 +16,8 @@ frontend/.vite/
 # Env / IDE
 .env
 .env.local
+.env.production
+!.env.example
 .idea/
 .vscode/
 *.log

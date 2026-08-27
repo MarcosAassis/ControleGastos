@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine, migrate_schema
 from .routers import dashboard, ganhos, gastos_fixos, gastos_variaveis, metas, rotina
 from .services import ensure_defaults
+from .settings import CORS_ORIGIN_REGEX, CORS_ORIGINS
 
 Base.metadata.create_all(bind=engine)
 migrate_schema()
@@ -17,7 +18,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=CORS_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
