@@ -7,6 +7,7 @@ import Ganhos from "./pages/Ganhos.jsx";
 import Gastos from "./pages/Gastos.jsx";
 import Login from "./pages/Login.jsx";
 import Metas from "./pages/Metas.jsx";
+import RecuperarSenha from "./pages/RecuperarSenha.jsx";
 import Rotina from "./pages/Rotina.jsx";
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/cadastro" element={<Cadastro />} />
+      <Route path="/recuperar-senha" element={<RecuperarSenha />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />

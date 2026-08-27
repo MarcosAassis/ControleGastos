@@ -27,6 +27,20 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class EmailCode(Base):
+    __tablename__ = "email_codes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    purpose: Mapped[str] = mapped_column(String(20), nullable=False)
+    code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class WorkRoutine(Base):
     __tablename__ = "work_routines"
 

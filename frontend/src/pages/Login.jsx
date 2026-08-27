@@ -62,6 +62,11 @@ export default function Login() {
         <button className="btn-primary" disabled={saving}>
           {saving ? "Entrando..." : "Entrar"}
         </button>
+        <p className="text-center text-sm">
+          <Link to="/recuperar-senha" className="font-semibold text-lime">
+            Esqueci a senha
+          </Link>
+        </p>
       </form>
 
       <p className="mt-6 text-center text-sm text-emerald-100/70">

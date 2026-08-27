@@ -51,7 +51,11 @@ export function AuthProvider({ children }) {
       user,
       ready,
       login: (body) => api.auth.login(body).then(saveSession),
-      register: (body) => api.auth.register(body).then(saveSession),
+      requestRegister: (body) => api.auth.register(body),
+      confirmRegister: (body) => api.auth.confirmRegister(body).then(saveSession),
+      resendRegister: (email) => api.auth.resendRegister({ email }),
+      forgotPassword: (email) => api.auth.forgotPassword({ email }),
+      resetPassword: (body) => api.auth.resetPassword(body),
       logout: () => {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);

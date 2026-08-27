@@ -50,6 +50,8 @@ Ordem: primeiro a API no Render, depois o site na Vercel.
    - `CORS_ORIGINS` = URL da Vercel, sem barra no final
    - `CORS_ORIGIN_REGEX` = `https://.*\.vercel\.app`
    - `SECRET_KEY` = uma frase longa e aleatória (obrigatória com o login)
+   - `RESEND_API_KEY` = chave da Resend (cadastro e recuperação de senha)
+   - `RESEND_FROM` = remetente verificado, por exemplo `Gestão Financeira <noreply@seudominio.com>`
 4. Health check: `/api/health`
 
 Se o plano gratuito de Postgres não aparecer, use o plano mais barato. O Web Service gratuito do Render pode “dormir”; a primeira abertura do app demora alguns segundos.
@@ -78,3 +80,16 @@ Meta por hora   = Meta diária / Horas trabalhadas por dia
 ```
 
 O custo fixo diário usa a mesma divisão, considerando apenas as contas fixas.
+
+## E-mail (Resend)
+
+No cadastro e na recuperação de senha a API envia um código de 6 dígitos, válido por 10 minutos.
+
+No `backend/.env`:
+
+```
+RESEND_API_KEY=re_...
+RESEND_FROM=Gestão Financeira <onboarding@resend.dev>
+```
+
+No plano gratuito da Resend, `onboarding@resend.dev` só entrega para o e-mail da sua conta. Em produção, verifique um domínio e use um remetente desse domínio.

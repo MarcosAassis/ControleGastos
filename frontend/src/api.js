@@ -41,8 +41,16 @@ export const api = {
   auth: {
     register: (body) =>
       request("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
+    resendRegister: (body) =>
+      request("/api/auth/register/resend", { method: "POST", body: JSON.stringify(body) }),
+    confirmRegister: (body) =>
+      request("/api/auth/register/confirm", { method: "POST", body: JSON.stringify(body) }),
     login: (body) =>
       request("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
+    forgotPassword: (body) =>
+      request("/api/auth/forgot-password", { method: "POST", body: JSON.stringify(body) }),
+    resetPassword: (body) =>
+      request("/api/auth/reset-password", { method: "POST", body: JSON.stringify(body) }),
     me: () => request("/api/auth/me"),
   },
   dashboard: (y, m) => request(`/api/dashboard?${qs(y, m)}`),

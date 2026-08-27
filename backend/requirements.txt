@@ -7,3 +7,4 @@ python-dotenv>=1.0.0
 psycopg[binary]>=3.2.0
 bcrypt>=4.2.0
 PyJWT>=2.10.0
+resend>=2.10.0

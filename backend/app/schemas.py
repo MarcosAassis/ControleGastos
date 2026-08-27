@@ -22,6 +22,42 @@ class UserLogin(BaseModel):
     password: str
 
 
+class EmailIn(BaseModel):
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def validar_email(cls, value: str) -> str:
+        return UserCreate.validar_email(value)
+
+
+class RegisterConfirmIn(BaseModel):
+    email: str
+    code: str = Field(min_length=6, max_length=6)
+
+    @field_validator("email")
+    @classmethod
+    def validar_email(cls, value: str) -> str:
+        return UserCreate.validar_email(value)
+
+    @field_validator("code")
+    @classmethod
+    def so_digitos(cls, value: str) -> str:
+        code = value.strip()
+        if not code.isdigit() or len(code) != 6:
+            raise ValueError("Informe o código de 6 dígitos.")
+        return code
+
+
+class ResetPasswordIn(RegisterConfirmIn):
+    password: str = Field(min_length=6, max_length=72)
+
+
+class MessageOut(BaseModel):
+    message: str
+    email: str | None = None
+
+
 class UserOut(BaseModel):
     id: int
     name: str
