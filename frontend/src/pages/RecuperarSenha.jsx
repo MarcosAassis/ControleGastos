@@ -3,10 +3,18 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import CodeForm from "../components/CodeForm.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
+const SUBTITLES = {
+  email: "Informe o e-mail da conta para receber um código.",
+  code: "Digite o código enviado para o seu e-mail.",
+  password: "Defina a nova senha e confirme para concluir.",
+};
+
 export default function RecuperarSenha() {
-  const { user, forgotPassword, resetPassword } = useAuth();
+  const { user, forgotPassword, verifyResetCode, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [passwords, setPasswords] = useState({ password: "", password_confirm: "" });
   const [step, setStep] = useState("email");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -29,17 +37,38 @@ export default function RecuperarSenha() {
     }
   };
 
-  const confirm = async (event) => {
+  const confirmCode = async (event) => {
     event.preventDefault();
     setSaving(true);
     setError("");
     setInfo("");
-    const data = new FormData(event.currentTarget);
+    const code = new FormData(event.currentTarget).get("code");
+    try {
+      const data = await verifyResetCode({ email, code });
+      setResetToken(data.reset_token);
+      setStep("password");
+      setInfo("Código confirmado. Agora defina a nova senha.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePassword = async (event) => {
+    event.preventDefault();
+    if (passwords.password !== passwords.password_confirm) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    setInfo("");
     try {
       await resetPassword({
-        email,
-        code: data.get("code"),
-        password: data.get("password"),
+        reset_token: resetToken,
+        password: passwords.password,
+        password_confirm: passwords.password_confirm,
       });
       navigate("/login", { replace: true });
     } catch (err) {
@@ -68,13 +97,9 @@ export default function RecuperarSenha() {
         Motorista Uber
       </p>
       <h1 className="mt-2 font-display text-3xl font-bold">Recuperar senha</h1>
-      <p className="mt-2 text-sm text-emerald-100/70">
-        {step === "email"
-          ? "Informe o e-mail da conta para receber um código."
-          : "Digite o código e escolha uma nova senha."}
-      </p>
+      <p className="mt-2 text-sm text-emerald-100/70">{SUBTITLES[step]}</p>
 
-      {step === "email" ? (
+      {step === "email" && (
         <form onSubmit={requestCode} className="card mt-6 space-y-3">
           <div>
             <label className="label">E-mail</label>
@@ -92,31 +117,72 @@ export default function RecuperarSenha() {
             {saving ? "Enviando..." : "Enviar código"}
           </button>
         </form>
-      ) : (
+      )}
+
+      {step === "code" && (
         <CodeForm
           email={email}
           description="Olhe a caixa de entrada e o spam. O código vale por 10 minutos."
-          submitLabel="Salvar nova senha"
-          onSubmit={confirm}
+          submitLabel="Validar código"
+          onSubmit={confirmCode}
           onResend={resend}
           saving={saving}
           error={error}
           info={info}
-          extraFields={
-            <div>
-              <label className="label">Nova senha</label>
-              <input
-                name="password"
-                type="password"
-                className="field"
-                autoComplete="new-password"
-                placeholder="Mínimo 6 caracteres"
-                required
-                minLength={6}
-              />
-            </div>
-          }
         />
+      )}
+
+      {step === "password" && (
+        <form onSubmit={savePassword} className="card mt-6 space-y-3">
+          <div>
+            <label className="label">Nova senha</label>
+            <input
+              type="password"
+              className="field"
+              autoComplete="new-password"
+              placeholder="Mínimo 6 caracteres"
+              value={passwords.password}
+              onChange={(e) => setPasswords({ ...passwords, password: e.target.value })}
+              required
+              minLength={6}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="label">Confirmar senha</label>
+            <input
+              type="password"
+              className="field"
+              autoComplete="new-password"
+              placeholder="Repita a nova senha"
+              value={passwords.password_confirm}
+              onChange={(e) =>
+                setPasswords({ ...passwords, password_confirm: e.target.value })
+              }
+              required
+              minLength={6}
+            />
+          </div>
+          {info && <p className="text-sm text-lime">{info}</p>}
+          {error && <p className="text-sm text-rose-300">{error}</p>}
+          <button className="btn-primary" disabled={saving}>
+            {saving ? "Salvando..." : "Salvar nova senha"}
+          </button>
+        </form>
+      )}
+
+      {step === "code" && (
+        <button
+          type="button"
+          className="mt-4 text-center text-sm font-semibold text-lime"
+          onClick={() => {
+            setStep("email");
+            setError("");
+            setInfo("");
+          }}
+        >
+          Voltar e alterar o e-mail
+        </button>
       )}
 
       <p className="mt-6 text-center text-sm text-emerald-100/70">

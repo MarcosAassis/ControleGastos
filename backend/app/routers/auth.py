@@ -1,7 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from ..auth import create_token, get_current_user, hash_password, verify_password
+from ..auth import (
+    create_reset_token,
+    create_token,
+    get_current_user,
+    hash_password,
+    user_from_reset_token,
+    verify_password,
+)
 from ..database import get_db
 from ..models import User
 from ..schemas import (
@@ -9,6 +16,7 @@ from ..schemas import (
     MessageOut,
     RegisterConfirmIn,
     ResetPasswordIn,
+    ResetTokenOut,
     TokenOut,
     UserCreate,
     UserLogin,
@@ -106,8 +114,8 @@ def forgot_password(payload: EmailIn, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/reset-password", response_model=MessageOut)
-def reset_password(payload: ResetPasswordIn, db: Session = Depends(get_db)):
+@router.post("/reset-password/verify", response_model=ResetTokenOut)
+def reset_password_verify(payload: RegisterConfirmIn, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
     user = db.query(User).filter(User.email == email).first()
     if not user:
@@ -116,9 +124,24 @@ def reset_password(payload: ResetPasswordIn, db: Session = Depends(get_db)):
             detail="Código inválido ou expirado. Peça um novo.",
         )
     consume_code(db, email, PURPOSE_RESET, payload.code)
+    return ResetTokenOut(
+        reset_token=create_reset_token(user.id),
+        message="Código confirmado. Defina a nova senha.",
+        email=email,
+    )
+
+
+@router.post("/reset-password", response_model=MessageOut)
+def reset_password(payload: ResetPasswordIn, db: Session = Depends(get_db)):
+    if payload.password != payload.password_confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="As senhas não coincidem.",
+        )
+    user = user_from_reset_token(payload.reset_token, db)
     user.password_hash = hash_password(payload.password)
     db.commit()
-    return MessageOut(message="Senha atualizada. Entre com a nova senha.", email=email)
+    return MessageOut(message="Senha atualizada. Entre com a nova senha.", email=user.email)
 
 
 @router.get("/me", response_model=UserOut)

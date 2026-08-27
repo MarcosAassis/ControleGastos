@@ -49,8 +49,16 @@ class RegisterConfirmIn(BaseModel):
         return code
 
 
-class ResetPasswordIn(RegisterConfirmIn):
+class ResetTokenOut(BaseModel):
+    reset_token: str
+    message: str
+    email: str | None = None
+
+
+class ResetPasswordIn(BaseModel):
+    reset_token: str
     password: str = Field(min_length=6, max_length=72)
+    password_confirm: str = Field(min_length=6, max_length=72)
 
 
 class MessageOut(BaseModel):

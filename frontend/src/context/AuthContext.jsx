@@ -55,6 +55,7 @@ export function AuthProvider({ children }) {
       confirmRegister: (body) => api.auth.confirmRegister(body).then(saveSession),
       resendRegister: (email) => api.auth.resendRegister({ email }),
       forgotPassword: (email) => api.auth.forgotPassword({ email }),
+      verifyResetCode: (body) => api.auth.verifyResetCode(body),
       resetPassword: (body) => api.auth.resetPassword(body),
       logout: () => {
         localStorage.removeItem(TOKEN_KEY);
