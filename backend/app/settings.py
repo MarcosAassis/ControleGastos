@@ -31,3 +31,17 @@ RESEND_FROM = os.getenv(
 EMAIL_CODE_TTL_MINUTES = int(os.getenv("EMAIL_CODE_TTL_MINUTES", "10"))
 EMAIL_CODE_RESEND_SECONDS = int(os.getenv("EMAIL_CODE_RESEND_SECONDS", "60"))
 EMAIL_CODE_MAX_ATTEMPTS = int(os.getenv("EMAIL_CODE_MAX_ATTEMPTS", "5"))
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5173").rstrip("/")
+
+UBER_MOCK = os.getenv("UBER_MOCK", "false").strip().lower() in {"1", "true", "yes"}
+UBER_CLIENT_ID = os.getenv("UBER_CLIENT_ID", "").strip()
+UBER_CLIENT_SECRET = os.getenv("UBER_CLIENT_SECRET", "").strip()
+UBER_REDIRECT_URI = os.getenv(
+    "UBER_REDIRECT_URI",
+    "http://127.0.0.1:8000/api/uber/callback",
+).strip()
+UBER_SCOPES = os.getenv("UBER_SCOPES", "partner.accounts offline_access").strip()
+UBER_AUTH_URL = "https://auth.uber.com/oauth/v2/authorize"
+UBER_TOKEN_URL = "https://auth.uber.com/oauth/v2/token"
+UBER_API_BASE = os.getenv("UBER_API_BASE", "https://api.uber.com").rstrip("/")

@@ -9,6 +9,7 @@ import Login from "./pages/Login.jsx";
 import Metas from "./pages/Metas.jsx";
 import RecuperarSenha from "./pages/RecuperarSenha.jsx";
 import Rotina from "./pages/Rotina.jsx";
+import Uber from "./pages/Uber.jsx";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/gastos" element={<Gastos />} />
           <Route path="/metas" element={<Metas />} />
           <Route path="/rotina" element={<Rotina />} />
+          <Route path="/uber" element={<Uber />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

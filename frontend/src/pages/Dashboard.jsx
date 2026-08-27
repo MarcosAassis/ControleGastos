@@ -98,6 +98,14 @@ export default function Dashboard() {
         <MiniCard title="Meta diária" value={brl(metas.meta_bruta_diaria)} to="/metas" />
         <MiniCard title="Custo fixo/dia" value={brl(metas.custo_fixo_diario)} to="/gastos" />
       </section>
+
+      <Link to="/uber" className="card block">
+        <p className="text-xs font-semibold uppercase tracking-wide text-lime">Integração</p>
+        <p className="mt-1 font-display text-lg font-bold">🚗 Conectar conta Uber</p>
+        <p className="mt-1 text-sm text-emerald-100/70">
+          Conecte sua conta Uber para autorizar o acesso aos seus dados de motorista.
+        </p>
+      </Link>
     </div>
   );
 }

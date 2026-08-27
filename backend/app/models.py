@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -132,3 +133,34 @@ class DailyEarning(Base):
     notes: Mapped[str | None] = mapped_column(String(300), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UberOAuthState(Base):
+    __tablename__ = "uber_oauth_states"
+
+    state: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class UberConnection(Base):
+    __tablename__ = "uber_connections"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    uber_driver_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    driver_first_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    driver_last_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    driver_email: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    activation_status: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    access_token_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    refresh_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    connected_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="connected")
+    mock: Mapped[bool] = mapped_column(Boolean, default=False)
+    profile_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
