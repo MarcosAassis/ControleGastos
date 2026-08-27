@@ -24,6 +24,7 @@ from ..schemas import (
 )
 from ..services import get_or_create_goals, get_or_create_routine
 from ..services.codes import (
+    PURPOSE_LOGIN,
     PURPOSE_REGISTER,
     PURPOSE_RESET,
     consume_code,
@@ -97,6 +98,33 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-mail ou senha incorretos.",
         )
+    get_or_create_routine(db, user.id)
+    get_or_create_goals(db, user.id)
+    return _session_for(user)
+
+
+@router.post("/login/code", response_model=MessageOut)
+def login_request_code(payload: EmailIn, db: Session = Depends(get_db)):
+    email = payload.email.strip().lower()
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        issue_code(db, email, PURPOSE_LOGIN)
+    return MessageOut(
+        message="Se este e-mail estiver cadastrado, enviamos um código para entrar.",
+        email=email,
+    )
+
+
+@router.post("/login/confirm", response_model=TokenOut)
+def login_confirm_code(payload: RegisterConfirmIn, db: Session = Depends(get_db)):
+    email = payload.email.strip().lower()
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Código inválido ou expirado. Peça um novo.",
+        )
+    consume_code(db, email, PURPOSE_LOGIN, payload.code)
     get_or_create_routine(db, user.id)
     get_or_create_goals(db, user.id)
     return _session_for(user)

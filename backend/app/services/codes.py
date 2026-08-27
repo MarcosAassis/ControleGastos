@@ -19,6 +19,7 @@ from .email import send_code_email
 
 PURPOSE_REGISTER = "register"
 PURPOSE_RESET = "reset"
+PURPOSE_LOGIN = "login"
 
 
 def _hash_code(email: str, purpose: str, code: str) -> str:

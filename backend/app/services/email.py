@@ -37,6 +37,10 @@ def send_code_email(to_email: str, code: str, purpose: str) -> None:
         subject = f"Seu código de cadastro — {APP_NAME}"
         title = "Confirme seu cadastro"
         intro = "Use o código abaixo para criar sua conta e começar a acompanhar metas, gastos e ganhos."
+    elif purpose == "login":
+        subject = f"Seu código de acesso — {APP_NAME}"
+        title = "Entrar na conta"
+        intro = "Use o código abaixo para entrar no app, sem precisar da senha."
     else:
         subject = f"Seu código de recuperação — {APP_NAME}"
         title = "Redefinir senha"

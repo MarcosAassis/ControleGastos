@@ -51,6 +51,8 @@ export function AuthProvider({ children }) {
       user,
       ready,
       login: (body) => api.auth.login(body).then(saveSession),
+      requestLoginCode: (email) => api.auth.requestLoginCode({ email }),
+      confirmLoginCode: (body) => api.auth.confirmLoginCode(body).then(saveSession),
       requestRegister: (body) => api.auth.register(body),
       confirmRegister: (body) => api.auth.confirmRegister(body).then(saveSession),
       resendRegister: (email) => api.auth.resendRegister({ email }),

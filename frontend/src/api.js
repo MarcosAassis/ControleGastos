@@ -47,6 +47,10 @@ export const api = {
       request("/api/auth/register/confirm", { method: "POST", body: JSON.stringify(body) }),
     login: (body) =>
       request("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
+    requestLoginCode: (body) =>
+      request("/api/auth/login/code", { method: "POST", body: JSON.stringify(body) }),
+    confirmLoginCode: (body) =>
+      request("/api/auth/login/confirm", { method: "POST", body: JSON.stringify(body) }),
     forgotPassword: (body) =>
       request("/api/auth/forgot-password", { method: "POST", body: JSON.stringify(body) }),
     verifyResetCode: (body) =>

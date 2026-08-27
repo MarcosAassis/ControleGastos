@@ -23,6 +23,7 @@ export default function App() {
           <Route path="/gastos" element={<Gastos />} />
           <Route path="/metas" element={<Metas />} />
           <Route path="/rotina" element={<Rotina />} />
+          <Route path="/uber" element={<Navigate to="/" replace />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
