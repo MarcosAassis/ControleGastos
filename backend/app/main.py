@@ -35,6 +35,16 @@ app.include_router(ganhos.router, prefix="/api/ganhos", tags=["Ganhos"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 
 
+@app.get("/")
+def root():
+    return {
+        "app": "Gestão Financeira para Motorista da Uber",
+        "status": "ok",
+        "docs": "/docs",
+        "health": "/api/health",
+    }
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
