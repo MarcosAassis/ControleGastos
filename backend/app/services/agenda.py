@@ -29,10 +29,14 @@ def dates_in_month(year: int, month: int) -> list[date]:
     return [date(year, month, day) for day in range(1, last + 1)]
 
 
-def load_overrides(db: Session, start: date, end: date) -> dict[date, bool]:
+def load_overrides(db: Session, user_id: int, start: date, end: date) -> dict[date, bool]:
     rows = (
         db.query(WorkDayOverride)
-        .filter(WorkDayOverride.date >= start, WorkDayOverride.date <= end)
+        .filter(
+            WorkDayOverride.user_id == user_id,
+            WorkDayOverride.date >= start,
+            WorkDayOverride.date <= end,
+        )
         .all()
     )
     return {row.date: row.working for row in rows}

@@ -16,3 +16,5 @@ services:
         sync: false
       - key: CORS_ORIGIN_REGEX
         value: https://.*\.vercel\.app
+      - key: SECRET_KEY
+        generateValue: true

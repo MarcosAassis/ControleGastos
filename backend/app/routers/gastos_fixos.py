@@ -3,11 +3,23 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ..auth import get_current_user
 from ..database import get_db
-from ..models import FixedExpense, FixedExpensePayment
+from ..models import FixedExpense, FixedExpensePayment, User
 from ..schemas import FixedExpenseIn, FixedExpenseOut, PaymentToggleIn
 
 router = APIRouter()
+
+
+def _owned(db: Session, expense_id: int, user_id: int) -> FixedExpense:
+    expense = (
+        db.query(FixedExpense)
+        .filter(FixedExpense.id == expense_id, FixedExpense.user_id == user_id)
+        .first()
+    )
+    if not expense:
+        raise HTTPException(status_code=404, detail="Gasto fixo não encontrado")
+    return expense
 
 
 def _with_payment_status(expense: FixedExpense, year: int, month: int) -> dict:
@@ -31,12 +43,14 @@ def list_gastos_fixos(
     ano: int | None = None,
     mes: int | None = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     today = datetime.now()
     year = ano or today.year
     month = mes or today.month
     expenses = (
         db.query(FixedExpense)
+        .filter(FixedExpense.user_id == user.id)
         .order_by(FixedExpense.due_date.is_(None), FixedExpense.due_date.asc(), FixedExpense.name.asc())
         .all()
     )
@@ -49,10 +63,15 @@ def create_gasto_fixo(
     ano: int | None = None,
     mes: int | None = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     today = datetime.now()
     data = payload.model_dump()
-    expense = FixedExpense(**data, due_day=data["due_date"].day if data.get("due_date") else None)
+    expense = FixedExpense(
+        **data,
+        user_id=user.id,
+        due_day=data["due_date"].day if data.get("due_date") else None,
+    )
     db.add(expense)
     db.commit()
     db.refresh(expense)
@@ -66,10 +85,9 @@ def update_gasto_fixo(
     ano: int | None = None,
     mes: int | None = None,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    expense = db.query(FixedExpense).filter(FixedExpense.id == expense_id).first()
-    if not expense:
-        raise HTTPException(status_code=404, detail="Gasto fixo não encontrado")
+    expense = _owned(db, expense_id, user.id)
     data = payload.model_dump()
     for key, value in data.items():
         setattr(expense, key, value)
@@ -81,10 +99,12 @@ def update_gasto_fixo(
 
 
 @router.delete("/{expense_id}", status_code=204)
-def delete_gasto_fixo(expense_id: int, db: Session = Depends(get_db)):
-    expense = db.query(FixedExpense).filter(FixedExpense.id == expense_id).first()
-    if not expense:
-        raise HTTPException(status_code=404, detail="Gasto fixo não encontrado")
+def delete_gasto_fixo(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    expense = _owned(db, expense_id, user.id)
     db.delete(expense)
     db.commit()
 
@@ -94,11 +114,9 @@ def toggle_pagamento(
     expense_id: int,
     payload: PaymentToggleIn,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    expense = db.query(FixedExpense).filter(FixedExpense.id == expense_id).first()
-    if not expense:
-        raise HTTPException(status_code=404, detail="Gasto fixo não encontrado")
-
+    expense = _owned(db, expense_id, user.id)
     payment = (
         db.query(FixedExpensePayment)
         .filter(

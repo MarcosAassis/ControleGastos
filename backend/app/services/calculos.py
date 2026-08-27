@@ -17,12 +17,14 @@ def month_range(year: int, month: int) -> tuple[date, date]:
     return date(year, month, 1), date(year, month, last_day)
 
 
-def total_fixed_expenses(db: Session) -> float:
-    rows = db.query(FixedExpense).all()
+def total_fixed_expenses(db: Session, user_id: int) -> float:
+    rows = db.query(FixedExpense).filter(FixedExpense.user_id == user_id).all()
     return _round_money(sum(item.amount for item in rows))
 
 
-def calcular_metas(db: Session, year: int | None = None, month: int | None = None) -> dict:
+def calcular_metas(
+    db: Session, user_id: int, year: int | None = None, month: int | None = None
+) -> dict:
     """
     Meta bruta = Gastos Fixos + Lucro Líquido desejado + Reserva de Imprevistos.
     Meta diária = total / dias trabalhados no mês.
@@ -33,13 +35,13 @@ def calcular_metas(db: Session, year: int | None = None, month: int | None = Non
     today = date.today()
     year = year or today.year
     month = month or today.month
-    routine = get_or_create_routine(db)
-    settings = get_or_create_goals(db)
-    gastos_fixos = total_fixed_expenses(db)
+    routine = get_or_create_routine(db, user_id)
+    settings = get_or_create_goals(db, user_id)
+    gastos_fixos = total_fixed_expenses(db, user_id)
 
     weekdays = parse_weekdays(getattr(routine, "weekdays", None))
     start, end = month_range(year, month)
-    overrides = load_overrides(db, start, end)
+    overrides = load_overrides(db, user_id, start, end)
     dias_calendario = working_dates(year, month, weekdays, overrides)
     dias = max(len(dias_calendario), 1)
     dias_semana = max(len(weekdays), 1)
@@ -83,21 +85,29 @@ def progresso_do_dia(ganho: float, meta_diaria: float) -> dict:
     }
 
 
-def montar_dashboard(db: Session, year: int, month: int) -> dict:
-    metas = calcular_metas(db, year, month)
+def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
+    metas = calcular_metas(db, user_id, year, month)
     start, end = month_range(year, month)
 
     earnings = (
         db.query(DailyEarning)
-        .filter(DailyEarning.date >= start, DailyEarning.date <= end)
+        .filter(
+            DailyEarning.user_id == user_id,
+            DailyEarning.date >= start,
+            DailyEarning.date <= end,
+        )
         .all()
     )
     variables = (
         db.query(VariableExpense)
-        .filter(VariableExpense.date >= start, VariableExpense.date <= end)
+        .filter(
+            VariableExpense.user_id == user_id,
+            VariableExpense.date >= start,
+            VariableExpense.date <= end,
+        )
         .all()
     )
-    expenses = db.query(FixedExpense).all()
+    expenses = db.query(FixedExpense).filter(FixedExpense.user_id == user_id).all()
     payments = (
         db.query(FixedExpensePayment)
         .filter(FixedExpensePayment.year == year, FixedExpensePayment.month == month)

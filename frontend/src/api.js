@@ -1,12 +1,27 @@
 const API_BASE = String(import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
+let authToken = localStorage.getItem("uber_financas_token") || "";
+
+export function setAuthToken(token) {
+  authToken = token || "";
+}
+
 async function request(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
     ...options,
+    headers,
   });
   if (response.status === 204) return null;
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    localStorage.removeItem("uber_financas_token");
+    localStorage.removeItem("uber_financas_user");
+    if (!path.startsWith("/api/auth/")) {
+      window.location.assign("/login");
+    }
+  }
   if (!response.ok) {
     const detail = data.detail;
     const message =
@@ -23,6 +38,13 @@ async function request(path, options = {}) {
 const qs = (year, month) => `ano=${year}&mes=${month}`;
 
 export const api = {
+  auth: {
+    register: (body) =>
+      request("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
+    login: (body) =>
+      request("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
+    me: () => request("/api/auth/me"),
+  },
   dashboard: (y, m) => request(`/api/dashboard?${qs(y, m)}`),
   rotina: {
     get: (y, m) => request(`/api/rotina?${qs(y, m)}`),

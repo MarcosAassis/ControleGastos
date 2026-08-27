@@ -19,3 +19,6 @@ CORS_ORIGINS = _split_origins(
 )
 
 CORS_ORIGIN_REGEX = os.getenv("CORS_ORIGIN_REGEX", r"https://.*\.vercel\.app")
+
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-local-mude-no-render-32chars")
+JWT_EXPIRE_DAYS = int(os.getenv("JWT_EXPIRE_DAYS", "30"))

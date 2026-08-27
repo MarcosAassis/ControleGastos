@@ -2,13 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine, migrate_schema
-from .routers import dashboard, ganhos, gastos_fixos, gastos_variaveis, metas, rotina
-from .services import ensure_defaults
+from .routers import auth, dashboard, ganhos, gastos_fixos, gastos_variaveis, metas, rotina
 from .settings import CORS_ORIGIN_REGEX, CORS_ORIGINS
 
 Base.metadata.create_all(bind=engine)
 migrate_schema()
-ensure_defaults()
 
 app = FastAPI(
     title="Gestão Financeira para Motorista da Uber",
@@ -25,6 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(rotina.router, prefix="/api/rotina", tags=["Rotina"])
 app.include_router(gastos_fixos.router, prefix="/api/gastos-fixos", tags=["Gastos Fixos"])
 app.include_router(

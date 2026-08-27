@@ -46,9 +46,10 @@ Ordem: primeiro a API no Render, depois o site na Vercel.
    - **Build Command:** `pip install -r requirements.txt`
    - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 3. Variáveis de ambiente:
-   - `DATABASE_URL` = URL do Postgres do Render (o painel costuma preencher ao conectar o banco)
-   - `CORS_ORIGINS` = URL da Vercel, sem barra no final, por exemplo `https://controle-gastos.vercel.app`
-   - `CORS_ORIGIN_REGEX` = `https://.*\.vercel\.app` (já cobre os deploys de preview)
+   - `DATABASE_URL` = URL do Postgres do Render
+   - `CORS_ORIGINS` = URL da Vercel, sem barra no final
+   - `CORS_ORIGIN_REGEX` = `https://.*\.vercel\.app`
+   - `SECRET_KEY` = uma frase longa e aleatória (obrigatória com o login)
 4. Health check: `/api/health`
 
 Se o plano gratuito de Postgres não aparecer, use o plano mais barato. O Web Service gratuito do Render pode “dormir”; a primeira abertura do app demora alguns segundos.

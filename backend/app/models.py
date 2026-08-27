@@ -17,10 +17,21 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
+    password_hash: Mapped[str] = mapped_column(String(120), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class WorkRoutine(Base):
     __tablename__ = "work_routines"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     days_per_month: Mapped[int] = mapped_column(Integer, default=22)
     days_per_week: Mapped[int] = mapped_column(Integer, default=5)
     hours_per_day: Mapped[float] = mapped_column(Float, default=8.0)
@@ -30,9 +41,11 @@ class WorkRoutine(Base):
 
 class WorkDayOverride(Base):
     __tablename__ = "work_day_overrides"
+    __table_args__ = (UniqueConstraint("user_id", "date", name="uq_override_user_date"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    date: Mapped[date] = mapped_column(Date, unique=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    date: Mapped[date] = mapped_column(Date, nullable=False)
     working: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -40,6 +53,7 @@ class GoalSettings(Base):
     __tablename__ = "goal_settings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     monthly_net_profit: Mapped[float] = mapped_column(Float, default=0.0)
     monthly_contingency: Mapped[float] = mapped_column(Float, default=0.0)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -49,6 +63,7 @@ class FixedExpense(Base):
     __tablename__ = "fixed_expenses"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     category: Mapped[str] = mapped_column(String(20), default="casa")
@@ -83,6 +98,7 @@ class VariableExpense(Base):
     __tablename__ = "variable_expenses"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     date: Mapped[date] = mapped_column(Date, nullable=False)
     type: Mapped[str] = mapped_column(String(40), nullable=False)
     description: Mapped[str] = mapped_column(String(200), default="")
@@ -92,9 +108,11 @@ class VariableExpense(Base):
 
 class DailyEarning(Base):
     __tablename__ = "daily_earnings"
+    __table_args__ = (UniqueConstraint("user_id", "date", name="uq_earning_user_date"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    date: Mapped[date] = mapped_column(Date, unique=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    date: Mapped[date] = mapped_column(Date, nullable=False)
     gross_amount: Mapped[float] = mapped_column(Float, nullable=False)
     km_driven: Mapped[float] = mapped_column(Float, default=0.0)
     notes: Mapped[str | None] = mapped_column(String(300), nullable=True)

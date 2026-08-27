@@ -2,10 +2,11 @@ from ..database import SessionLocal
 from ..models import GoalSettings, WorkRoutine
 
 
-def get_or_create_routine(db):
-    routine = db.query(WorkRoutine).first()
+def get_or_create_routine(db, user_id: int):
+    routine = db.query(WorkRoutine).filter(WorkRoutine.user_id == user_id).first()
     if not routine:
         routine = WorkRoutine(
+            user_id=user_id,
             days_per_month=22,
             days_per_week=5,
             hours_per_day=8.0,
@@ -17,20 +18,15 @@ def get_or_create_routine(db):
     return routine
 
 
-def get_or_create_goals(db):
-    settings = db.query(GoalSettings).first()
+def get_or_create_goals(db, user_id: int):
+    settings = db.query(GoalSettings).filter(GoalSettings.user_id == user_id).first()
     if not settings:
-        settings = GoalSettings(monthly_net_profit=0.0, monthly_contingency=0.0)
+        settings = GoalSettings(
+            user_id=user_id,
+            monthly_net_profit=0.0,
+            monthly_contingency=0.0,
+        )
         db.add(settings)
         db.commit()
         db.refresh(settings)
     return settings
-
-
-def ensure_defaults():
-    db = SessionLocal()
-    try:
-        get_or_create_routine(db)
-        get_or_create_goals(db)
-    finally:
-        db.close()
