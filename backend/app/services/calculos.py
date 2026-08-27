@@ -17,9 +17,40 @@ def month_range(year: int, month: int) -> tuple[date, date]:
     return date(year, month, 1), date(year, month, last_day)
 
 
-def total_fixed_expenses(db: Session, user_id: int) -> float:
+def total_fixed_expenses(db: Session, user_id: int, year: int, month: int) -> float:
     rows = db.query(FixedExpense).filter(FixedExpense.user_id == user_id).all()
-    return _round_money(sum(item.amount for item in rows))
+    total = 0.0
+    for item in rows:
+        if item.due_date and item.due_date.year == year and item.due_date.month == month:
+            total += item.amount
+    return _round_money(total)
+
+
+def month_has_activity(db: Session, user_id: int, year: int, month: int, gastos_fixos: float) -> bool:
+    if gastos_fixos > 0:
+        return True
+    start, end = month_range(year, month)
+    if (
+        db.query(DailyEarning)
+        .filter(
+            DailyEarning.user_id == user_id,
+            DailyEarning.date >= start,
+            DailyEarning.date <= end,
+        )
+        .first()
+    ):
+        return True
+    if (
+        db.query(VariableExpense)
+        .filter(
+            VariableExpense.user_id == user_id,
+            VariableExpense.date >= start,
+            VariableExpense.date <= end,
+        )
+        .first()
+    ):
+        return True
+    return False
 
 
 def calcular_metas(
@@ -37,7 +68,7 @@ def calcular_metas(
     month = month or today.month
     routine = get_or_create_routine(db, user_id)
     settings = get_or_create_goals(db, user_id)
-    gastos_fixos = total_fixed_expenses(db, user_id)
+    gastos_fixos = total_fixed_expenses(db, user_id, year, month)
 
     weekdays = parse_weekdays(getattr(routine, "weekdays", None))
     start, end = month_range(year, month)
@@ -47,7 +78,10 @@ def calcular_metas(
     dias_semana = max(len(weekdays), 1)
     horas = max(routine.hours_per_day, 0.1)
 
-    total = gastos_fixos + settings.monthly_net_profit + settings.monthly_contingency
+    if month_has_activity(db, user_id, year, month, gastos_fixos):
+        total = gastos_fixos + settings.monthly_net_profit + settings.monthly_contingency
+    else:
+        total = 0.0
     meta_diaria = total / dias
     meta_semanal = meta_diaria * dias_semana
     meta_hora = meta_diaria / horas

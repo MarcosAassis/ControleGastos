@@ -3,6 +3,7 @@ import { brl } from "../utils/format.js";
 import ProgressBar from "./ProgressBar.jsx";
 
 export default function GoalBanner({ ganho, meta, faltam, atingida, progresso }) {
+  if (!Number(meta)) return null;
   return (
     <section
       className={`card ${
