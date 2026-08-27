@@ -9,6 +9,7 @@ import { brl, km, pct } from "../utils/format.js";
 export default function Dashboard() {
   const { year, month } = useMonth();
   const [data, setData] = useState(null);
+  const [uber, setUber] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export default function Dashboard() {
       .dashboard(year, month)
       .then(setData)
       .catch((err) => setError(err.message));
+    api.uber.status().then(setUber).catch(() => setUber(null));
   }, [year, month]);
 
   if (error) {
@@ -31,6 +33,21 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
+      <Link
+        to="/uber"
+        className={`card block ${uber?.connected ? "border-lime/30" : "border-lime/50 bg-lime/5"}`}
+      >
+        <p className="text-xs font-semibold uppercase tracking-wide text-lime">Conta Uber</p>
+        <p className="mt-1 font-display text-lg font-bold">
+          {uber?.connected ? "Uber conectada ✅" : "Vincular conta Uber"}
+        </p>
+        <p className="mt-1 text-sm text-emerald-100/70">
+          {uber?.connected
+            ? uber.driver_name || "Toque para ver o status da conexão."
+            : "Toque aqui para autorizar sua conta de motorista."}
+        </p>
+      </Link>
+
       <section className="card bg-gradient-to-br from-night-700 to-night-900">
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200/70">
           Lucro líquido real
@@ -98,14 +115,6 @@ export default function Dashboard() {
         <MiniCard title="Meta diária" value={brl(metas.meta_bruta_diaria)} to="/metas" />
         <MiniCard title="Custo fixo/dia" value={brl(metas.custo_fixo_diario)} to="/gastos" />
       </section>
-
-      <Link to="/uber" className="card block">
-        <p className="text-xs font-semibold uppercase tracking-wide text-lime">Integração</p>
-        <p className="mt-1 font-display text-lg font-bold">🚗 Conectar conta Uber</p>
-        <p className="mt-1 text-sm text-emerald-100/70">
-          Conecte sua conta Uber para autorizar o acesso aos seus dados de motorista.
-        </p>
-      </Link>
     </div>
   );
 }
