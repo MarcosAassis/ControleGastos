@@ -1,4 +1,4 @@
-const API_BASE = String(import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const API_BASE = "";
 
 export function getStoredToken() {
   return (
