@@ -83,6 +83,36 @@ def calcular_metas(
     }
 
 
+def montar_eficiencia(
+    faturamento: float,
+    km_total: float,
+    horas_total: float,
+    faturamento_com_horas: float,
+    meta_por_hora: float,
+) -> dict:
+    rs_km = (faturamento / km_total) if km_total else None
+    rs_hora = (faturamento_com_horas / horas_total) if horas_total else None
+    comparacao = None
+    if rs_hora is not None and meta_por_hora:
+        comparacao = (rs_hora / meta_por_hora) * 100
+    badge = None
+    if comparacao is not None:
+        if comparacao >= 110:
+            badge = "excelente"
+        elif comparacao >= 85:
+            badge = "media"
+        else:
+            badge = "abaixo"
+    return {
+        "rs_por_km": _round_money(rs_km) if rs_km is not None else None,
+        "rs_por_hora": _round_money(rs_hora) if rs_hora is not None else None,
+        "horas_total": _round_money(horas_total),
+        "meta_por_hora": _round_money(meta_por_hora),
+        "comparacao_hora_pct": _round_money(comparacao) if comparacao is not None else None,
+        "badge": badge,
+    }
+
+
 def progresso_do_dia(ganho: float, meta_diaria: float) -> dict:
     meta = max(meta_diaria, 0)
     faltam = max(meta - ganho, 0)
@@ -131,6 +161,10 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
 
     faturamento = sum(e.gross_amount for e in earnings)
     km_total = sum(e.km_driven for e in earnings)
+    horas_total = sum(float(e.hours_worked or 0) for e in earnings)
+    faturamento_com_horas = sum(
+        e.gross_amount for e in earnings if e.hours_worked
+    )
     gastos_variaveis = sum(v.amount for v in variables)
 
     contas_pagas = 0
@@ -158,6 +192,21 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
     horas_hoje = today_earning.hours_worked if today_earning else None
     obs_hoje = today_earning.notes if today_earning else ""
     hoje_status = progresso_do_dia(ganho_hoje, metas["meta_bruta_diaria"])
+    eficiencia = montar_eficiencia(
+        faturamento,
+        km_total,
+        horas_total,
+        faturamento_com_horas,
+        metas["meta_por_hora"],
+    )
+    horas_hoje_num = float(horas_hoje or 0)
+    eficiencia_hoje = montar_eficiencia(
+        ganho_hoje,
+        km_hoje,
+        horas_hoje_num,
+        ganho_hoje if horas_hoje else 0.0,
+        metas["meta_por_hora"],
+    )
 
     return {
         "periodo": {"ano": year, "mes": month},
@@ -170,8 +219,10 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
             "gastos_totais": _round_money(gastos_totais),
             "lucro_liquido": _round_money(lucro_liquido),
             "km_total": _round_money(km_total),
+            "horas_total": _round_money(horas_total),
             "dias_com_ganho": len(earnings),
         },
+        "eficiencia": eficiencia,
         "progresso": {
             "meta_mensal_pct": _round_money(meta_pct),
             "pagamentos_pct": _round_money(pagamentos_pct),
@@ -187,6 +238,7 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
             "horas": horas_hoje,
             "notes": obs_hoje,
             "tem_lancamento": today_earning is not None,
+            "eficiencia": eficiencia_hoje,
             **hoje_status,
         },
     }

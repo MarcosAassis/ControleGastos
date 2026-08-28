@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
+import EfficiencyCard from "../components/EfficiencyCard.jsx";
 import GoalBanner from "../components/GoalBanner.jsx";
 import ProgressBar from "../components/ProgressBar.jsx";
 import QuickEarningCard from "../components/QuickEarningCard.jsx";
@@ -33,7 +34,7 @@ export default function Dashboard() {
     return <p className="pt-10 text-center text-emerald-100/60">Carregando painel...</p>;
   }
 
-  const { realizado, progresso, metas, hoje = {} } = data;
+  const { realizado, progresso, metas, hoje = {}, eficiencia } = data;
   if (!realizado || !progresso || !metas) {
     return (
       <p className="card text-sm text-rose-300">
@@ -42,6 +43,8 @@ export default function Dashboard() {
     );
   }
   const lucroPositivo = realizado.lucro_liquido >= 0;
+  const mesAtual =
+    year === new Date().getFullYear() && month === new Date().getMonth() + 1;
 
   return (
     <div className="space-y-4">
@@ -74,6 +77,11 @@ export default function Dashboard() {
         <Metric label="Km rodados" value={km(realizado.km_total)} />
         <Metric label="Dias na rua" value={`${realizado.dias_com_ganho} / ${metas.dias_trabalhados_mes}`} />
       </div>
+
+      <EfficiencyCard eficiencia={eficiencia} />
+      {mesAtual && hoje?.tem_lancamento && hoje.eficiencia && (
+        <EfficiencyCard eficiencia={hoje.eficiencia} titulo="Eficiência de hoje" />
+      )}
 
       <section className="card space-y-3">
         <div className="flex items-center justify-between">

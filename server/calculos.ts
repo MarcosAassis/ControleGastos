@@ -153,6 +153,33 @@ export function calcularMetas(userId: number, year: number, month: number) {
   };
 }
 
+export function montarEficiencia(
+  faturamento: number,
+  kmTotal: number,
+  horasTotal: number,
+  faturamentoComHoras: number,
+  metaPorHora: number
+) {
+  const rsKm = kmTotal ? faturamento / kmTotal : null;
+  const rsHora = horasTotal ? faturamentoComHoras / horasTotal : null;
+  const comparacao =
+    rsHora !== null && metaPorHora ? (rsHora / metaPorHora) * 100 : null;
+  let badge: "excelente" | "media" | "abaixo" | null = null;
+  if (comparacao !== null) {
+    if (comparacao >= 110) badge = "excelente";
+    else if (comparacao >= 85) badge = "media";
+    else badge = "abaixo";
+  }
+  return {
+    rs_por_km: rsKm !== null ? roundMoney(rsKm) : null,
+    rs_por_hora: rsHora !== null ? roundMoney(rsHora) : null,
+    horas_total: roundMoney(horasTotal),
+    meta_por_hora: roundMoney(metaPorHora),
+    comparacao_hora_pct: comparacao !== null ? roundMoney(comparacao) : null,
+    badge,
+  };
+}
+
 export function progressoDoDia(ganho: number, metaDiaria: number) {
   const meta = Math.max(metaDiaria, 0);
   const faltam = Math.max(meta - ganho, 0);
@@ -192,6 +219,11 @@ export function montarDashboard(userId: number, year: number, month: number) {
 
   const faturamento = earnings.reduce((sum, e) => sum + e.gross_amount, 0);
   const kmTotal = earnings.reduce((sum, e) => sum + e.km_driven, 0);
+  const horasTotal = earnings.reduce((sum, e) => sum + (e.hours_worked || 0), 0);
+  const faturamentoComHoras = earnings.reduce(
+    (sum, e) => sum + (e.hours_worked ? e.gross_amount : 0),
+    0
+  );
   const gastosVariaveis = variables.reduce((sum, v) => sum + v.amount, 0);
 
   let contasPagas = 0;
@@ -227,6 +259,21 @@ export function montarDashboard(userId: number, year: number, month: number) {
   const horasHoje = todayEarning ? todayEarning.hours_worked ?? null : null;
   const obsHoje = todayEarning ? todayEarning.notes || "" : "";
   const hojeStatus = progressoDoDia(ganhoHoje, metas.meta_bruta_diaria);
+  const eficiencia = montarEficiencia(
+    faturamento,
+    kmTotal,
+    horasTotal,
+    faturamentoComHoras,
+    metas.meta_por_hora
+  );
+  const horasHojeNum = horasHoje || 0;
+  const eficienciaHoje = montarEficiencia(
+    ganhoHoje,
+    kmHoje,
+    horasHojeNum,
+    horasHoje ? ganhoHoje : 0,
+    metas.meta_por_hora
+  );
 
   return {
     periodo: { ano: year, mes: month },
@@ -239,8 +286,10 @@ export function montarDashboard(userId: number, year: number, month: number) {
       gastos_totais: roundMoney(gastosTotais),
       lucro_liquido: roundMoney(lucroLiquido),
       km_total: roundMoney(kmTotal),
+      horas_total: roundMoney(horasTotal),
       dias_com_ganho: earnings.length,
     },
+    eficiencia,
     progresso: {
       meta_mensal_pct: roundMoney(metaPct),
       pagamentos_pct: roundMoney(pagamentosPct),
@@ -256,6 +305,7 @@ export function montarDashboard(userId: number, year: number, month: number) {
       horas: horasHoje,
       notes: obsHoje,
       tem_lancamento: todayEarning !== null,
+      eficiencia: eficienciaHoje,
       ...hojeStatus,
     },
   };

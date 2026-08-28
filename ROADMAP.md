@@ -15,9 +15,9 @@ Este documento reúne o planejamento estratégico, novas funcionalidades propost
 ## 🚀 Novas Funcionalidades (Backlog & Propostas)
 
 ### 1. Métricas de Eficiência Operacional (R$/km e R$/hora)
-- [ ] **Indicadores no Dashboard:** Exibir rendimento real por km e por hora trabalhada.
-- [ ] **Comparador de Eficiência:** Comparar o rendimento real com a meta/hora estipulada na rotina.
-- [ ] **Badge de Rentabilidade:** Alertas visuais (Ex: *Excelente*, *Na Média*, *Abaixo do Ideal*).
+- [x] **Indicadores no Dashboard:** Exibir rendimento real por km e por hora trabalhada.
+- [x] **Comparador de Eficiência:** Comparar o rendimento real com a meta/hora estipulada na rotina.
+- [x] **Badge de Rentabilidade:** Alertas visuais (Ex: *Excelente*, *Na Média*, *Abaixo do Ideal*).
 
 ### 2. Lançamento Rápido no Fim de Turno
 - [x] **Ação Rápida no Dashboard:** Modal/Card na tela inicial para registrar o dia atual em 3 campos rápidos:
@@ -61,7 +61,7 @@ Este documento reúne o planejamento estratégico, novas funcionalidades propost
 | Prioridade | Tarefa | Impacto | Esforço | Status |
 |---|---|---|---|---|
 | **1** | Lançamento Rápido no Dashboard | Alto (reduz atrito diário do motorista) | Baixo | 🟢 Concluído |
-| **2** | Métricas de Eficiência (R$/km e R$/h) | Alto (clareza sobre rentabilidade real) | Médio | 🟡 Próxima |
+| **2** | Métricas de Eficiência (R$/km e R$/h) | Alto (clareza sobre rentabilidade real) | Médio | 🟢 Concluído |
 | **3** | Relatório / Fechamento Mensal em PDF | Médio (auxilia no controle e IRPF) | Médio | ⚪ Planejado |
 
 ---
