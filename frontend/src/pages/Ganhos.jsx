@@ -13,6 +13,7 @@ export default function Ganhos() {
     date: todayISO(),
     gross_amount: "",
     km_driven: "",
+    hours_worked: "",
     notes: "",
   });
   const [status, setStatus] = useState(null);
@@ -29,6 +30,7 @@ export default function Ganhos() {
         date: hoje.date,
         gross_amount: String(hoje.gross_amount),
         km_driven: String(hoje.km_driven || ""),
+        hours_worked: hoje.hours_worked !== null && hoje.hours_worked !== undefined ? String(hoje.hours_worked) : "",
         notes: hoje.notes || "",
       });
     } else {
@@ -56,6 +58,7 @@ export default function Ganhos() {
         date: form.date,
         gross_amount: Number(form.gross_amount || 0),
         km_driven: Number(form.km_driven || 0),
+        hours_worked: form.hours_worked !== "" ? Number(form.hours_worked) : null,
         notes: form.notes || null,
       });
       setStatus(saved);
@@ -96,7 +99,7 @@ export default function Ganhos() {
             required
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <label className="label">Valor bruto (R$)</label>
             <input
@@ -120,6 +123,18 @@ export default function Ganhos() {
               placeholder="0"
               value={form.km_driven}
               onChange={(e) => setForm({ ...form, km_driven: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="label">Horas trabalhadas</label>
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              className="field"
+              placeholder="Ex: 8"
+              value={form.hours_worked}
+              onChange={(e) => setForm({ ...form, hours_worked: e.target.value })}
             />
           </div>
         </div>
@@ -149,7 +164,8 @@ export default function Ganhos() {
                 <p className="text-sm text-emerald-100/70">{formatDate(item.date)}</p>
                 <p className="font-display text-lg font-bold">{brl(item.gross_amount)}</p>
                 <p className="text-xs text-emerald-100/60">
-                  {km(item.km_driven)} · {item.atingida ? "Meta atingida" : `Faltam ${brl(item.faltam)}`}
+                  {km(item.km_driven)}
+                  {item.hours_worked ? ` · ${item.hours_worked}h` : ""} · {item.atingida ? "Meta atingida" : `Faltam ${brl(item.faltam)}`}
                 </p>
               </div>
               <button type="button" onClick={() => remove(item.id)} className="text-rose-300">

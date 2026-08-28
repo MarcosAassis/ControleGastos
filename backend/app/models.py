@@ -144,6 +144,7 @@ class DailyEarning(Base):
     date: Mapped[date] = mapped_column(Date, nullable=False)
     gross_amount: Mapped[float] = mapped_column(Float, nullable=False)
     km_driven: Mapped[float] = mapped_column(Float, default=0.0)
+    hours_worked: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
     notes: Mapped[str | None] = mapped_column(String(300), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

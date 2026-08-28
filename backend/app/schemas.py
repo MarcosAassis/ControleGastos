@@ -167,6 +167,7 @@ class DailyEarningIn(BaseModel):
     date: date
     gross_amount: float = Field(ge=0)
     km_driven: float = Field(ge=0, default=0)
+    hours_worked: float | None = Field(default=None, ge=0)
     notes: str | None = None
 
 

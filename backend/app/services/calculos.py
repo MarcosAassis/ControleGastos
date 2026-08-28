@@ -152,7 +152,11 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
     pagamentos_pct = 0.0 if not month_expenses else (contas_pagas / len(month_expenses)) * 100
 
     today = date.today()
-    ganho_hoje = next((e.gross_amount for e in earnings if e.date == today), 0.0)
+    today_earning = next((e for e in earnings if e.date == today), None)
+    ganho_hoje = today_earning.gross_amount if today_earning else 0.0
+    km_hoje = today_earning.km_driven if today_earning else 0.0
+    horas_hoje = today_earning.hours_worked if today_earning else None
+    obs_hoje = today_earning.notes if today_earning else ""
     hoje_status = progresso_do_dia(ganho_hoje, metas["meta_bruta_diaria"])
 
     return {
@@ -179,6 +183,10 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
         "hoje": {
             "data": today.isoformat(),
             "ganho": _round_money(ganho_hoje),
+            "km": _round_money(km_hoje),
+            "horas": horas_hoje,
+            "notes": obs_hoje,
+            "tem_lancamento": today_earning is not None,
             **hoje_status,
         },
     }

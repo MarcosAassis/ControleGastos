@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import GoalBanner from "../components/GoalBanner.jsx";
 import ProgressBar from "../components/ProgressBar.jsx";
+import QuickEarningCard from "../components/QuickEarningCard.jsx";
 import { useMonth } from "../context/MonthContext.jsx";
 import { brl, km, pct } from "../utils/format.js";
 
@@ -11,12 +12,18 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
+  const loadData = async () => {
+    try {
+      const res = await api.dashboard(year, month);
+      setData(res);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   useEffect(() => {
     setError("");
-    api
-      .dashboard(year, month)
-      .then(setData)
-      .catch((err) => setError(err.message));
+    loadData();
   }, [year, month]);
 
   if (error) {
@@ -31,6 +38,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
+      {/* Lançamento Rápido no Topo do Dashboard para fácil acesso */}
+      <QuickEarningCard hoje={hoje} metas={metas} onSaved={loadData} />
+
       <section className="card bg-gradient-to-br from-night-700 to-night-900">
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200/70">
           Lucro líquido real

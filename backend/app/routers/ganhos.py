@@ -19,6 +19,7 @@ def _with_goal(earning: DailyEarning, meta_diaria: float) -> dict:
         "date": earning.date,
         "gross_amount": earning.gross_amount,
         "km_driven": earning.km_driven,
+        "hours_worked": earning.hours_worked,
         "notes": earning.notes,
         "created_at": earning.created_at,
         "updated_at": earning.updated_at,
@@ -65,6 +66,7 @@ def upsert_ganho(
     if earning:
         earning.gross_amount = payload.gross_amount
         earning.km_driven = payload.km_driven
+        earning.hours_worked = payload.hours_worked
         earning.notes = payload.notes
         earning.updated_at = datetime.utcnow()
     else:
