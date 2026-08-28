@@ -125,47 +125,51 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
       {isOpen && (
         <form onSubmit={handleSubmit} className="mt-4 space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div>
-              <label className="label text-xs font-medium">Faturamento bruto (R$)</label>
-              <div className="relative mt-1">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="field py-2 text-base font-bold text-lime placeholder-emerald-100/30"
-                  placeholder="0,00"
-                  value={grossAmount}
-                  onChange={(e) => setGrossAmount(e.target.value)}
-                  required
-                  autoFocus={!hoje?.tem_lancamento}
-                />
+            <div className="flex min-w-0 flex-col">
+              <div className="flex h-8 items-end">
+                <label className="label mb-0 truncate text-xs font-medium">
+                  Faturamento bruto (R$)
+                </label>
               </div>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className="field mt-1 h-11 py-2 text-sm font-bold text-lime placeholder-emerald-100/30"
+                placeholder="0,00"
+                value={grossAmount}
+                onChange={(e) => setGrossAmount(e.target.value)}
+                required
+                autoFocus={!hoje?.tem_lancamento}
+              />
             </div>
 
-            <div>
-              <label className="label text-xs font-medium">Km rodados</label>
+            <div className="flex min-w-0 flex-col">
+              <div className="flex h-8 items-end">
+                <label className="label mb-0 truncate text-xs font-medium">Km rodados</label>
+              </div>
               <input
                 type="number"
                 min="0"
                 step="0.1"
-                className="field mt-1 py-2 text-sm font-semibold placeholder-emerald-100/30"
+                className="field mt-1 h-11 py-2 text-sm font-semibold placeholder-emerald-100/30"
                 placeholder="Ex: 150"
                 value={kmDriven}
                 onChange={(e) => setKmDriven(e.target.value)}
               />
             </div>
 
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="label text-xs font-medium">Horas trabalhadas</label>
+            <div className="flex min-w-0 flex-col">
+              <div className="flex h-8 items-end justify-between gap-2">
+                <label className="label mb-0 truncate text-xs font-medium">Horas</label>
                 {metas?.horas_por_dia && (
                   <button
                     type="button"
                     onClick={applyRoutineHours}
-                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-lime transition hover:underline"
+                    className="mb-0 inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold leading-none text-lime transition hover:underline"
                     title="Preencher com horas da sua rotina padrão"
                   >
-                    <Sparkles size={10} /> Sugestão ({metas.horas_por_dia}h)
+                    <Sparkles size={10} /> {metas.horas_por_dia}h
                   </button>
                 )}
               </div>
@@ -174,7 +178,7 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
                   type="number"
                   min="0"
                   step="0.5"
-                  className="field py-2 text-sm font-semibold placeholder-emerald-100/30"
+                  className="field h-11 py-2 pr-10 text-sm font-semibold placeholder-emerald-100/30"
                   placeholder="Ex: 8"
                   value={hoursWorked}
                   onChange={(e) => setHoursWorked(e.target.value)}
