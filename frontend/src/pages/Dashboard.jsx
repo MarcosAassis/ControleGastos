@@ -33,7 +33,14 @@ export default function Dashboard() {
     return <p className="pt-10 text-center text-emerald-100/60">Carregando painel...</p>;
   }
 
-  const { realizado, progresso, metas, hoje } = data;
+  const { realizado, progresso, metas, hoje = {} } = data;
+  if (!realizado || !progresso || !metas) {
+    return (
+      <p className="card text-sm text-rose-300">
+        Não foi possível carregar o painel. Entre de novo ou confira se a API está no ar.
+      </p>
+    );
+  }
   const lucroPositivo = realizado.lucro_liquido >= 0;
 
   return (

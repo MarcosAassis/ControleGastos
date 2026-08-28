@@ -52,7 +52,9 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(() => {
     const saveSession = (data, rememberMe = true) => {
-      // Limpa qualquer dado residual de ambos os armazenamentos primeiro
+      if (!data?.access_token || !data.user) {
+        throw new Error("A API não devolveu uma sessão válida. Tente entrar de novo.");
+      }
       clearStoredAuth();
       localStorage.removeItem(STORAGE_TYPE_KEY);
       sessionStorage.removeItem(STORAGE_TYPE_KEY);

@@ -100,13 +100,10 @@ def migrate_schema():
                         "UPDATE work_routines SET weekdays = '[0,1,2,3,4]' WHERE weekdays IS NULL"
                     )
                 )
-            earnings_cols = _table_columns(conn, "daily_earnings")
-            if earnings_cols and "hours_worked" not in earnings_cols:
-                conn.execute(
-                    text(
-                        "ALTER TABLE daily_earnings ADD COLUMN hours_worked FLOAT"
-                    )
-                )
+
+        earnings_cols = _table_columns(conn, "daily_earnings")
+        if earnings_cols and "hours_worked" not in earnings_cols:
+            conn.execute(text("ALTER TABLE daily_earnings ADD COLUMN hours_worked FLOAT"))
 
         for table in (
             "work_routines",

@@ -1,4 +1,4 @@
-const API_BASE = "";
+const API_BASE = String(import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 export function getStoredToken() {
   return (
@@ -29,7 +29,10 @@ async function request(path, options = {}) {
     headers,
   });
   if (response.status === 204) return null;
-  const data = await response.json().catch(() => ({}));
+  const contentType = response.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await response.json().catch(() => ({}))
+    : {};
   if (response.status === 401) {
     clearStoredAuth();
     if (!path.startsWith("/api/auth/")) {
@@ -45,6 +48,11 @@ async function request(path, options = {}) {
           ? detail.map((item) => item.msg || item).join(" ")
           : "Não foi possível concluir a operação.";
     throw new Error(message);
+  }
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      "Não foi possível falar com a API. Confira se o backend está no ar e se VITE_API_URL aponta para ele.",
+    );
   }
   return data;
 }

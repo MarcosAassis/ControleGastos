@@ -34,11 +34,6 @@ function createToken(userId: number, rememberMe = true): string {
 function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith("Bearer ")) {
-    // Graceful fallback to primary user if exists
-    if (dbInstance.db.users.length > 0) {
-      req.user = dbInstance.db.users[0];
-      return next();
-    }
     return res.status(401).json({ detail: "Faça login para continuar." });
   }
   const token = header.substring(7).trim();
@@ -47,17 +42,11 @@ function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
     const userId = Number(payload.sub);
     const user = dbInstance.db.users.find((u) => u.id === userId);
     if (!user) {
-      req.user = dbInstance.db.users[0] || undefined;
-      return next();
+      return res.status(401).json({ detail: "Usuário não encontrado." });
     }
     req.user = user;
     next();
   } catch (err) {
-    // If token verification fails (e.g. from previous python backend session), fall back gracefully
-    if (dbInstance.db.users.length > 0) {
-      req.user = dbInstance.db.users[0];
-      return next();
-    }
     return res.status(401).json({ detail: "Sessão inválida ou expirada." });
   }
 }
