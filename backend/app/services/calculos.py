@@ -17,9 +17,15 @@ def month_range(year: int, month: int) -> tuple[date, date]:
     return date(year, month, 1), date(year, month, last_day)
 
 
-def total_fixed_expenses(db: Session, user_id: int, year: int | None = None, month: int | None = None) -> float:
+def total_fixed_expenses(db: Session, user_id: int, year: int, month: int) -> float:
     rows = db.query(FixedExpense).filter(FixedExpense.user_id == user_id).all()
-    total = sum(item.amount for item in rows)
+    total = 0.0
+    for item in rows:
+        if item.due_date:
+            if item.due_date.year == year and item.due_date.month == month:
+                total += item.amount
+        else:
+            total += item.amount
     return _round_money(total)
 
 
@@ -112,6 +118,10 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
         .all()
     )
     expenses = db.query(FixedExpense).filter(FixedExpense.user_id == user_id).all()
+    month_expenses = [
+        e for e in expenses
+        if not e.due_date or (e.due_date.year == year and e.due_date.month == month)
+    ]
     payments = (
         db.query(FixedExpensePayment)
         .filter(FixedExpensePayment.year == year, FixedExpensePayment.month == month)
@@ -127,7 +137,7 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
     contas_pendentes = 0
     valor_pago = 0.0
     valor_pendente = 0.0
-    for expense in expenses:
+    for expense in month_expenses:
         if paid_map.get(expense.id):
             contas_pagas += 1
             valor_pago += expense.amount
@@ -139,7 +149,7 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
     lucro_liquido = faturamento - gastos_totais
     meta_mensal = metas["meta_bruta_mensal"]
     meta_pct = 0.0 if meta_mensal == 0 else (faturamento / meta_mensal) * 100
-    pagamentos_pct = 0.0 if not expenses else (contas_pagas / len(expenses)) * 100
+    pagamentos_pct = 0.0 if not month_expenses else (contas_pagas / len(month_expenses)) * 100
 
     today = date.today()
     ganho_hoje = next((e.gross_amount for e in earnings if e.date == today), 0.0)

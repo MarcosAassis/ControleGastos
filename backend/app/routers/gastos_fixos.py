@@ -54,7 +54,11 @@ def list_gastos_fixos(
         .order_by(FixedExpense.due_date.is_(None), FixedExpense.due_date.asc(), FixedExpense.name.asc())
         .all()
     )
-    return [_with_payment_status(item, year, month) for item in expenses]
+    filtered = [
+        item for item in expenses
+        if not item.due_date or (item.due_date.year == year and item.due_date.month == month)
+    ]
+    return [_with_payment_status(item, year, month) for item in filtered]
 
 
 @router.post("", response_model=FixedExpenseOut, status_code=201)
