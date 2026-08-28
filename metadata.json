@@ -1,0 +1,6 @@
+{
+  "name": "Gestão Financeira Motorista Uber",
+  "description": "Controle de rotina, gastos fixos e variáveis, metas mensais e ganhos diários para motoristas de aplicativo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

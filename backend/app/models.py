@@ -73,6 +73,21 @@ class GoalSettings(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class MonthlyGoal(Base):
+    __tablename__ = "monthly_goals"
+    __table_args__ = (
+        UniqueConstraint("user_id", "year", "month", name="uq_monthly_goal_user_year_month"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    month: Mapped[int] = mapped_column(Integer, nullable=False)
+    monthly_net_profit: Mapped[float] = mapped_column(Float, default=0.0)
+    monthly_contingency: Mapped[float] = mapped_column(Float, default=0.0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class FixedExpense(Base):
     __tablename__ = "fixed_expenses"
 

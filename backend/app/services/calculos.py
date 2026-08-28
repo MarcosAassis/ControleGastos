@@ -4,7 +4,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from ..models import DailyEarning, FixedExpense, FixedExpensePayment, VariableExpense
-from . import get_or_create_goals, get_or_create_routine
+from . import get_goals_for_month, get_or_create_goals, get_or_create_routine
 from .agenda import dates_in_month, load_overrides, parse_weekdays, working_dates
 
 
@@ -67,7 +67,7 @@ def calcular_metas(
     year = year or today.year
     month = month or today.month
     routine = get_or_create_routine(db, user_id)
-    settings = get_or_create_goals(db, user_id)
+    settings, is_custom = get_goals_for_month(db, user_id, year, month)
     gastos_fixos = total_fixed_expenses(db, user_id, year, month)
 
     weekdays = parse_weekdays(getattr(routine, "weekdays", None))
@@ -104,6 +104,9 @@ def calcular_metas(
             "(Gastos Fixos + Lucro Líquido + Reserva de Imprevistos) "
             "/ Dias trabalhados no mês"
         ),
+        "is_custom": is_custom,
+        "ano": year,
+        "mes": month,
     }
 
 

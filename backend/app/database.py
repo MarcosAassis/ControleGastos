@@ -105,6 +105,7 @@ def migrate_schema():
             "work_routines",
             "work_day_overrides",
             "goal_settings",
+            "monthly_goals",
             "fixed_expenses",
             "variable_expenses",
             "daily_earnings",

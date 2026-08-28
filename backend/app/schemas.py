@@ -111,11 +111,19 @@ class WorkDayToggleIn(BaseModel):
 class GoalSettingsIn(BaseModel):
     monthly_net_profit: float = Field(ge=0)
     monthly_contingency: float = Field(ge=0)
+    year: int | None = None
+    month: int | None = Field(default=None, ge=1, le=12)
+    save_as_default: bool = False
 
 
-class GoalSettingsOut(GoalSettingsIn):
-    id: int
-    updated_at: datetime
+class GoalSettingsOut(BaseModel):
+    id: int | None = None
+    monthly_net_profit: float
+    monthly_contingency: float
+    year: int | None = None
+    month: int | None = None
+    is_custom: bool = False
+    updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -188,3 +196,6 @@ class MetasOut(BaseModel):
     meta_bruta_diaria: float
     meta_por_hora: float
     formula: str
+    is_custom: bool = False
+    ano: int | None = None
+    mes: int | None = None

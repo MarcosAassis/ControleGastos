@@ -86,9 +86,11 @@ export const api = {
       }),
   },
   metas: {
-    config: () => request("/api/metas/config"),
-    saveConfig: (body) =>
-      request("/api/metas/config", { method: "PUT", body: JSON.stringify(body) }),
+    config: (y, m) => request(`/api/metas/config?${qs(y, m)}`),
+    saveConfig: (body, y, m) =>
+      request(`/api/metas/config?${qs(y, m)}`, { method: "PUT", body: JSON.stringify(body) }),
+    resetConfig: (y, m) =>
+      request(`/api/metas/config?${qs(y, m)}`, { method: "DELETE" }),
     calculo: (y, m) => request(`/api/metas/calculo?${qs(y, m)}`),
   },
   gastosFixos: {

@@ -1,5 +1,5 @@
 from ..database import SessionLocal
-from ..models import GoalSettings, WorkRoutine
+from ..models import GoalSettings, MonthlyGoal, WorkRoutine
 
 
 def get_or_create_routine(db, user_id: int):
@@ -30,3 +30,24 @@ def get_or_create_goals(db, user_id: int):
         db.commit()
         db.refresh(settings)
     return settings
+
+
+def get_goals_for_month(db, user_id: int, year: int, month: int):
+    """
+    Retorna a meta específica do mês se configurada (MonthlyGoal);
+    caso contrário, retorna as configurações padrão do usuário (GoalSettings).
+    Retorna uma tupla (goal_object, is_custom: bool).
+    """
+    monthly = (
+        db.query(MonthlyGoal)
+        .filter(
+            MonthlyGoal.user_id == user_id,
+            MonthlyGoal.year == year,
+            MonthlyGoal.month == month,
+        )
+        .first()
+    )
+    if monthly:
+        return monthly, True
+    settings = get_or_create_goals(db, user_id)
+    return settings, False
