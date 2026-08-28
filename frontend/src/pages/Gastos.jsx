@@ -358,6 +358,7 @@ export default function Gastos() {
                   ))}
                 </div>
               </>
+            )}
             {varError && <p className="field-error">{varError}</p>}
             <button className="btn-primary">
               <Plus size={18} /> Lançar gasto
