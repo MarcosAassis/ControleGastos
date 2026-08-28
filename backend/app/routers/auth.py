@@ -35,9 +35,9 @@ from ..services.codes import (
 router = APIRouter()
 
 
-def _session_for(user: User) -> TokenOut:
+def _session_for(user: User, remember_me: bool = True) -> TokenOut:
     return TokenOut(
-        access_token=create_token(user.id),
+        access_token=create_token(user.id, remember_me=remember_me),
         user=UserOut.model_validate(user),
     )
 
@@ -86,7 +86,7 @@ def register_confirm(payload: RegisterConfirmIn, db: Session = Depends(get_db)):
     db.refresh(user)
     get_or_create_routine(db, user.id)
     get_or_create_goals(db, user.id)
-    return _session_for(user)
+    return _session_for(user, remember_me=payload.remember_me)
 
 
 @router.post("/login", response_model=TokenOut)
@@ -100,7 +100,7 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
         )
     get_or_create_routine(db, user.id)
     get_or_create_goals(db, user.id)
-    return _session_for(user)
+    return _session_for(user, remember_me=payload.remember_me)
 
 
 @router.post("/login/code", response_model=MessageOut)
@@ -127,7 +127,7 @@ def login_confirm_code(payload: RegisterConfirmIn, db: Session = Depends(get_db)
     consume_code(db, email, PURPOSE_LOGIN, payload.code)
     get_or_create_routine(db, user.id)
     get_or_create_goals(db, user.id)
-    return _session_for(user)
+    return _session_for(user, remember_me=payload.remember_me)
 
 
 @router.post("/forgot-password", response_model=MessageOut)

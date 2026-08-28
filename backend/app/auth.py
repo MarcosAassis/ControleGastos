@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import User
-from .settings import EMAIL_CODE_TTL_MINUTES, JWT_EXPIRE_DAYS, SECRET_KEY
+from .settings import (
+    EMAIL_CODE_TTL_MINUTES,
+    JWT_EXPIRE_DAYS,
+    JWT_SHORT_EXPIRE_HOURS,
+    SECRET_KEY,
+)
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -21,11 +26,16 @@ def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
 
 
-def create_token(user_id: int) -> str:
+def create_token(user_id: int, remember_me: bool = True) -> str:
+    expires_delta = (
+        timedelta(days=JWT_EXPIRE_DAYS)
+        if remember_me
+        else timedelta(hours=JWT_SHORT_EXPIRE_HOURS)
+    )
     payload = {
         "sub": str(user_id),
         "typ": "access",
-        "exp": datetime.utcnow() + timedelta(days=JWT_EXPIRE_DAYS),
+        "exp": datetime.utcnow() + expires_delta,
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 

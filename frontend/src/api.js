@@ -1,6 +1,21 @@
 const API_BASE = String(import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
-let authToken = localStorage.getItem("uber_financas_token") || "";
+export function getStoredToken() {
+  return (
+    localStorage.getItem("uber_financas_token") ||
+    sessionStorage.getItem("uber_financas_token") ||
+    ""
+  );
+}
+
+export function clearStoredAuth() {
+  localStorage.removeItem("uber_financas_token");
+  localStorage.removeItem("uber_financas_user");
+  sessionStorage.removeItem("uber_financas_token");
+  sessionStorage.removeItem("uber_financas_user");
+}
+
+let authToken = getStoredToken();
 
 export function setAuthToken(token) {
   authToken = token || "";
@@ -16,8 +31,7 @@ async function request(path, options = {}) {
   if (response.status === 204) return null;
   const data = await response.json().catch(() => ({}));
   if (response.status === 401) {
-    localStorage.removeItem("uber_financas_token");
-    localStorage.removeItem("uber_financas_user");
+    clearStoredAuth();
     if (!path.startsWith("/api/auth/")) {
       window.location.assign("/login");
     }

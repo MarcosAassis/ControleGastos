@@ -12,7 +12,7 @@ export default function Login() {
   const { user, login, requestLoginCode, confirmLoginCode } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState("password");
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "", remember_me: true });
   const [codeSent, setCodeSent] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -64,7 +64,7 @@ export default function Login() {
     setInfo("");
     const code = new FormData(event.currentTarget).get("code");
     try {
-      await confirmLoginCode({ email: form.email, code });
+      await confirmLoginCode({ email: form.email, code, remember_me: form.remember_me });
       navigate("/", { replace: true });
     } catch (err) {
       setError(err.message);
@@ -138,6 +138,15 @@ export default function Login() {
               required
             />
           </div>
+          <label className="flex cursor-pointer items-center gap-2.5 py-1 text-sm text-emerald-100/90 select-none">
+            <input
+              type="checkbox"
+              checked={form.remember_me}
+              onChange={(e) => setForm({ ...form, remember_me: e.target.checked })}
+              className="h-4 w-4 rounded border-white/20 bg-night-950 text-lime focus:ring-lime focus:ring-offset-0"
+            />
+            <span>Mantenha-me conectado</span>
+          </label>
           {error && <p className="text-sm text-rose-300">{error}</p>}
           <button className="btn-primary" disabled={saving}>
             {saving ? "Entrando..." : "Entrar"}
@@ -158,6 +167,17 @@ export default function Login() {
           saving={saving}
           error={error}
           info={info}
+          extraFields={
+            <label className="flex cursor-pointer items-center gap-2.5 py-1 text-sm text-emerald-100/90 select-none">
+              <input
+                type="checkbox"
+                checked={form.remember_me}
+                onChange={(e) => setForm({ ...form, remember_me: e.target.checked })}
+                className="h-4 w-4 rounded border-white/20 bg-night-950 text-lime focus:ring-lime focus:ring-offset-0"
+              />
+              <span>Mantenha-me conectado</span>
+            </label>
+          }
         />
       ) : (
         <form
@@ -179,6 +199,15 @@ export default function Login() {
               autoFocus
             />
           </div>
+          <label className="flex cursor-pointer items-center gap-2.5 py-1 text-sm text-emerald-100/90 select-none">
+            <input
+              type="checkbox"
+              checked={form.remember_me}
+              onChange={(e) => setForm({ ...form, remember_me: e.target.checked })}
+              className="h-4 w-4 rounded border-white/20 bg-night-950 text-lime focus:ring-lime focus:ring-offset-0"
+            />
+            <span>Mantenha-me conectado</span>
+          </label>
           {error && <p className="text-sm text-rose-300">{error}</p>}
           <button className="btn-primary" disabled={saving}>
             {saving ? "Enviando..." : "Enviar código"}

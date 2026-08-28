@@ -1,19 +1,28 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, setAuthToken } from "../api.js";
+import { api, clearStoredAuth, getStoredToken, setAuthToken } from "../api.js";
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = "uber_financas_token";
 const USER_KEY = "uber_financas_user";
+const STORAGE_TYPE_KEY = "uber_financas_storage_type";
+
+function getStorage() {
+  const type = localStorage.getItem(STORAGE_TYPE_KEY) || sessionStorage.getItem(STORAGE_TYPE_KEY);
+  return type === "session" ? sessionStorage : localStorage;
+}
+
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(USER_KEY) || "null");
-    } catch {
-      return null;
-    }
-  });
+  const [token, setToken] = useState(() => getStoredToken());
+  const [user, setUser] = useState(() => getStoredUser());
   const [ready, setReady] = useState(!token);
 
   useEffect(() => {
@@ -27,11 +36,13 @@ export function AuthProvider({ children }) {
       .me()
       .then((current) => {
         setUser(current);
-        localStorage.setItem(USER_KEY, JSON.stringify(current));
+        const storage = getStorage();
+        storage.setItem(USER_KEY, JSON.stringify(current));
       })
       .catch(() => {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
+        clearStoredAuth();
+        localStorage.removeItem(STORAGE_TYPE_KEY);
+        sessionStorage.removeItem(STORAGE_TYPE_KEY);
         setToken("");
         setUser(null);
         setAuthToken("");
@@ -40,28 +51,47 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const value = useMemo(() => {
-    const saveSession = (data) => {
-      localStorage.setItem(TOKEN_KEY, data.access_token);
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    const saveSession = (data, rememberMe = true) => {
+      // Limpa qualquer dado residual de ambos os armazenamentos primeiro
+      clearStoredAuth();
+      localStorage.removeItem(STORAGE_TYPE_KEY);
+      sessionStorage.removeItem(STORAGE_TYPE_KEY);
+
+      const targetStorage = rememberMe ? localStorage : sessionStorage;
+      targetStorage.setItem(TOKEN_KEY, data.access_token);
+      targetStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      targetStorage.setItem(STORAGE_TYPE_KEY, rememberMe ? "local" : "session");
+
       setAuthToken(data.access_token);
       setUser(data.user);
       setToken(data.access_token);
     };
+
     return {
       user,
       ready,
-      login: (body) => api.auth.login(body).then(saveSession),
+      login: (body) => {
+        const rememberMe = body?.remember_me !== false;
+        return api.auth.login(body).then((data) => saveSession(data, rememberMe));
+      },
       requestLoginCode: (email) => api.auth.requestLoginCode({ email }),
-      confirmLoginCode: (body) => api.auth.confirmLoginCode(body).then(saveSession),
+      confirmLoginCode: (body) => {
+        const rememberMe = body?.remember_me !== false;
+        return api.auth.confirmLoginCode(body).then((data) => saveSession(data, rememberMe));
+      },
       requestRegister: (body) => api.auth.register(body),
-      confirmRegister: (body) => api.auth.confirmRegister(body).then(saveSession),
+      confirmRegister: (body) => {
+        const rememberMe = body?.remember_me !== false;
+        return api.auth.confirmRegister(body).then((data) => saveSession(data, rememberMe));
+      },
       resendRegister: (email) => api.auth.resendRegister({ email }),
       forgotPassword: (email) => api.auth.forgotPassword({ email }),
       verifyResetCode: (body) => api.auth.verifyResetCode(body),
       resetPassword: (body) => api.auth.resetPassword(body),
       logout: () => {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
+        clearStoredAuth();
+        localStorage.removeItem(STORAGE_TYPE_KEY);
+        sessionStorage.removeItem(STORAGE_TYPE_KEY);
         setAuthToken("");
         setToken("");
         setUser(null);

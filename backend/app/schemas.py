@@ -20,6 +20,7 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+    remember_me: bool = True
 
 
 class EmailIn(BaseModel):
@@ -34,6 +35,7 @@ class EmailIn(BaseModel):
 class RegisterConfirmIn(BaseModel):
     email: str
     code: str = Field(min_length=6, max_length=6)
+    remember_me: bool = True
 
     @field_validator("email")
     @classmethod
