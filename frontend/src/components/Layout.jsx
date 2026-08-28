@@ -1,4 +1,4 @@
-import { CalendarClock, LayoutDashboard, LogOut, Receipt, Target, Wallet } from "lucide-react";
+import { CalendarClock, FileText, LayoutDashboard, LogOut, Receipt, Target, Wallet } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -11,6 +11,7 @@ const links = [
   { to: "/ganhos", label: "Ganhos", icon: Wallet },
   { to: "/gastos", label: "Gastos", icon: Receipt },
   { to: "/metas", label: "Metas", icon: Target },
+  { to: "/relatorio", label: "Fechar", icon: FileText },
   { to: "/rotina", label: "Rotina", icon: CalendarClock },
 ];
 
@@ -21,7 +22,7 @@ export default function Layout() {
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
-      <header className="sticky top-0 z-20 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl">
+      <header className="sticky top-0 z-20 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-xl print:hidden">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-lime">
@@ -57,12 +58,12 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 pb-28 pt-2">
+      <main className="flex-1 px-4 pb-28 pt-2 print:pb-0">
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-night-900/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl">
-        <div className="mx-auto grid max-w-lg grid-cols-5">
+      <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-night-900/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl print:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-6">
           {links.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}

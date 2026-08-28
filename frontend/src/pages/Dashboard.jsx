@@ -123,6 +123,19 @@ export default function Dashboard() {
         <MiniCard title="Meta diária" value={brl(metas.meta_bruta_diaria)} to="/metas" />
         <MiniCard title="Custo fixo/dia" value={brl(metas.custo_fixo_diario)} to="/gastos" />
       </section>
+
+      <Link
+        to="/relatorio"
+        className="card block border-lime/20"
+      >
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200/70">
+          Fechamento do mês
+        </p>
+        <p className="mt-1 font-display text-lg font-bold">Imprimir, WhatsApp ou CSV</p>
+        <p className="mt-1 text-sm text-emerald-100/70">
+          Relatório consolidado de faturamento, gastos e lucro.
+        </p>
+      </Link>
     </div>
   );
 }

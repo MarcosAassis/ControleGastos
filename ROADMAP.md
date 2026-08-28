@@ -37,9 +37,9 @@ Este documento reúne o planejamento estratégico, novas funcionalidades propost
 - [ ] **Recálculo Automático das Metas Diárias:** Ajustar meta por dia trabalhado considerando os dias de descanso planejados.
 
 ### 5. Exportação e Fechamento Mensal
-- [ ] **Resumo para Impressão/PDF:** Relatório consolidado de faturamento, custos fixos pagos, despesas variáveis e lucro líquido.
-- [ ] **Compartilhamento / WhatsApp:** Formato de texto limpo para envio de resumo do mês.
-- [ ] **Exportação para CSV/Excel:** Download de lançamentos detalhados do mês.
+- [x] **Resumo para Impressão/PDF:** Relatório consolidado de faturamento, custos fixos pagos, despesas variáveis e lucro líquido.
+- [x] **Compartilhamento / WhatsApp:** Formato de texto limpo para envio de resumo do mês.
+- [x] **Exportação para CSV/Excel:** Download de lançamentos detalhados do mês.
 
 ---
 
@@ -62,7 +62,7 @@ Este documento reúne o planejamento estratégico, novas funcionalidades propost
 |---|---|---|---|---|
 | **1** | Lançamento Rápido no Dashboard | Alto (reduz atrito diário do motorista) | Baixo | 🟢 Concluído |
 | **2** | Métricas de Eficiência (R$/km e R$/h) | Alto (clareza sobre rentabilidade real) | Médio | 🟢 Concluído |
-| **3** | Relatório / Fechamento Mensal em PDF | Médio (auxilia no controle e IRPF) | Médio | ⚪ Planejado |
+| **3** | Relatório / Fechamento Mensal em PDF | Médio (auxilia no controle e IRPF) | Médio | 🟢 Concluído |
 
 ---
 *Última atualização: 28 de Agosto de 2026*

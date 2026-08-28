@@ -43,3 +43,28 @@ button {
     @apply inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-semibold text-emerald-100 transition active:scale-[0.98];
   }
 }
+
+@media print {
+  body {
+    background: #fff !important;
+    color: #10241c;
+    background-image: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-report {
+    border: none !important;
+    background: #fff !important;
+    color: #10241c !important;
+    box-shadow: none !important;
+  }
+
+  .print-report .text-lime,
+  .print-report .text-emerald-100\/70,
+  .print-report .text-emerald-100\/60 {
+    color: #163228 !important;
+  }
+}
