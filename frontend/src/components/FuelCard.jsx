@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Droplets, Gauge, Waypoints } from "lucide-react";
 import { brl } from "../utils/format.js";
 
@@ -6,22 +7,24 @@ function rate(value, suffix) {
   return `${Number(value).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}${suffix}`;
 }
 
-export default function FuelCard({ consumo }) {
-  if (!consumo || !Number(consumo.abastecimentos)) return null;
+export default function FuelCard({ consumo, alwaysShow = false, to }) {
+  const data = consumo || {};
+  if (!Number(data.abastecimentos) && !alwaysShow) return null;
 
-  const temLitros = Number(consumo.litros) > 0;
-  const temKmL = consumo.km_per_liter != null;
-  const temRsKm = consumo.rs_per_km != null;
-
-  return (
-    <section className="card space-y-3">
+  const temLitros = Number(data.litros) > 0;
+  const temKmL = data.km_per_liter != null;
+  const temRsKm = data.rs_per_km != null;
+  const inner = (
+    <>
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200/70">
           Consumo de combustível
         </p>
         <p className="mt-1 text-sm text-emerald-100/70">
-          {consumo.abastecimentos} abastecimento{consumo.abastecimentos === 1 ? "" : "s"} no mês
-          {temLitros ? ` · ${rate(consumo.litros, " L")}` : ""}
+          {Number(data.abastecimentos) || 0} abastecimento
+          {Number(data.abastecimentos) === 1 ? "" : "s"} no mês
+          {temLitros ? ` · ${rate(data.litros, " L")}` : ""}
+          {to ? " · toque para lançar" : ""}
         </p>
       </div>
 
@@ -29,7 +32,7 @@ export default function FuelCard({ consumo }) {
         <Metric
           icon={Gauge}
           label="km / litro"
-          value={rate(consumo.km_per_liter, " km/l")}
+          value={rate(data.km_per_liter, " km/l")}
           hint={
             temKmL
               ? "Km dos ganhos ÷ litros lançados"
@@ -41,7 +44,7 @@ export default function FuelCard({ consumo }) {
         <Metric
           icon={Waypoints}
           label="R$ / km"
-          value={consumo.rs_per_km != null ? `${brl(consumo.rs_per_km)}/km` : "—"}
+          value={data.rs_per_km != null ? `${brl(data.rs_per_km)}/km` : "—"}
           hint={temRsKm ? "Gasto com combustível ÷ km" : "Falta km ou litros"}
         />
       </div>
@@ -50,15 +53,25 @@ export default function FuelCard({ consumo }) {
         <p className="inline-flex items-center gap-1.5 text-xs text-emerald-100/70">
           <Droplets size={14} /> Gasto no posto
         </p>
-        <p className="mt-1 font-display text-lg font-bold">{brl(consumo.gasto)}</p>
+        <p className="mt-1 font-display text-lg font-bold">{brl(data.gasto)}</p>
         <p className="mt-0.5 text-[11px] text-emerald-100/50">
-          {consumo.price_per_liter != null
-            ? `Média ${brl(consumo.price_per_liter)}/L`
+          {data.price_per_liter != null
+            ? `Média ${brl(data.price_per_liter)}/L`
             : "Informe os litros para ver o preço médio do litro"}
         </p>
       </div>
-    </section>
+    </>
   );
+
+  if (to) {
+    return (
+      <Link to={to} className="card block space-y-3">
+        {inner}
+      </Link>
+    );
+  }
+
+  return <section className="card space-y-3">{inner}</section>;
 }
 
 function Metric({ icon: Icon, label, value, hint }) {

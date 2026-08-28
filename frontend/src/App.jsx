@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Cadastro from "./pages/Cadastro.jsx";
+import Combustivel from "./pages/Combustivel.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Ganhos from "./pages/Ganhos.jsx";
 import Gastos from "./pages/Gastos.jsx";
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/ganhos" element={<Ganhos />} />
           <Route path="/gastos" element={<Gastos />} />
+          <Route path="/combustivel" element={<Combustivel />} />
           <Route path="/metas" element={<Metas />} />
           <Route path="/relatorio" element={<Relatorio />} />
           <Route path="/rotina" element={<Rotina />} />

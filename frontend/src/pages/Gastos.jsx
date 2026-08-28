@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Plus, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import EmptyState from "../components/EmptyState.jsx";
-import FuelCard from "../components/FuelCard.jsx";
-import FuelComparator from "../components/FuelComparator.jsx";
 import { useMonth } from "../context/MonthContext.jsx";
 import { brl, formatDate, maskDateBR, parseDateBR, todayISO } from "../utils/format.js";
-import { moneyFieldProps, parseAmount, parseOptionalAmount } from "../utils/validate.js";
+import { moneyFieldProps, parseAmount } from "../utils/validate.js";
 
 const SUGESTOES_FIXAS = [
   { name: "Aluguel", category: "casa" },
@@ -20,7 +19,6 @@ const SUGESTOES_FIXAS = [
 ];
 
 const TIPOS_VARIAVEIS = [
-  { id: "combustivel", label: "Combustível" },
   { id: "alimentacao", label: "Alimentação" },
   { id: "lavagem", label: "Lavagem" },
   { id: "imprevisto", label: "Imprevisto" },
@@ -33,7 +31,7 @@ export default function Gastos() {
   const [fixos, setFixos] = useState([]);
   const [variaveis, setVariaveis] = useState([]);
   const [metas, setMetas] = useState(null);
-  const [consumo, setConsumo] = useState(null);
+  const [gastoCombustivel, setGastoCombustivel] = useState(0);
   const [fixoForm, setFixoForm] = useState({
     name: "",
     amount: "",
@@ -44,12 +42,9 @@ export default function Gastos() {
   const [varError, setVarError] = useState("");
   const emptyVar = {
     date: todayISO(),
-    type: "combustivel",
+    type: "alimentacao",
     description: "",
     amount: "",
-    liters: "",
-    odometer_km: "",
-    fuel_kind: "gasolina",
   };
   const [varForm, setVarForm] = useState(emptyVar);
 
@@ -62,7 +57,7 @@ export default function Gastos() {
     setFixos(fixed);
     setVariaveis(vars);
     setMetas(dash.metas);
-    setConsumo(dash.combustivel);
+    setGastoCombustivel(Number(dash.combustivel?.gasto || 0));
   };
 
   useEffect(() => {
@@ -75,6 +70,11 @@ export default function Gastos() {
   );
   const totalVariaveis = useMemo(
     () => variaveis.reduce((acc, item) => acc + Number(item.amount), 0),
+    [variaveis]
+  );
+
+  const variaveisOutros = useMemo(
+    () => variaveis.filter((item) => (item.type || "").toLowerCase() !== "combustivel"),
     [variaveis]
   );
 
@@ -115,12 +115,9 @@ export default function Gastos() {
 
   const addVariavel = async (event) => {
     event.preventDefault();
-    const isFuel = varForm.type === "combustivel";
     const amount = parseAmount(varForm.amount, { required: true, min: 0.01, label: "valor" });
-    const liters = parseOptionalAmount(varForm.liters, { label: "litros" });
-    const odometer = parseOptionalAmount(varForm.odometer_km, { label: "odômetro" });
-    if (!amount.ok || !liters.ok || !odometer.ok) {
-      setVarError(amount.error || liters.error || odometer.error);
+    if (!amount.ok) {
+      setVarError(amount.error);
       return;
     }
     if (!varForm.date) {
@@ -134,9 +131,6 @@ export default function Gastos() {
         type: varForm.type,
         description: varForm.description,
         amount: amount.value,
-        liters: isFuel ? liters.value : null,
-        odometer_km: isFuel ? odometer.value : null,
-        fuel_kind: isFuel ? varForm.fuel_kind : null,
       });
       setVarForm({ ...emptyVar, date: todayISO() });
       await load();
@@ -277,12 +271,19 @@ export default function Gastos() {
             <p className="text-xs text-emerald-200/70">Gastos variáveis do mês</p>
             <p className="font-display text-3xl font-bold">{brl(totalVariaveis)}</p>
             <p className="mt-1 text-sm text-emerald-100/70">
-              Combustível, alimentação, lavagem e imprevistos lançados
+              Alimentação, lavagem, imprevistos e combustível
             </p>
           </section>
 
-          <FuelCard consumo={consumo} />
-          <FuelComparator />
+          <Link to="/combustivel" className="card block border-lime/20">
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200/70">
+              Combustível
+            </p>
+            <p className="mt-1 font-display text-lg font-bold">{brl(gastoCombustivel)}</p>
+            <p className="mt-1 text-sm text-emerald-100/70">
+              Lançar abastecimento, km/l e etanol x gasolina no Posto.
+            </p>
+          </Link>
 
           <form onSubmit={addVariavel} className="card space-y-3">
             <h2 className="font-display font-semibold">Novo gasto variável</h2>
@@ -321,67 +322,24 @@ export default function Gastos() {
               onChange={(e) => setVarForm({ ...varForm, amount: e.target.value })}
               required
             />
-            {varForm.type === "combustivel" && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    {...moneyFieldProps}
-                    className="field"
-                    placeholder="Litros (opcional)"
-                    value={varForm.liters}
-                    onChange={(e) => setVarForm({ ...varForm, liters: e.target.value })}
-                  />
-                  <input
-                    {...moneyFieldProps}
-                    step="0.1"
-                    className="field"
-                    placeholder="Odômetro km"
-                    value={varForm.odometer_km}
-                    onChange={(e) => setVarForm({ ...varForm, odometer_km: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "gasolina", label: "Gasolina" },
-                    { id: "etanol", label: "Etanol" },
-                  ].map((kind) => (
-                    <button
-                      type="button"
-                      key={kind.id}
-                      className={`rounded-xl py-2 text-sm font-bold ${
-                        varForm.fuel_kind === kind.id ? "bg-lime text-night-950" : "bg-white/5"
-                      }`}
-                      onClick={() => setVarForm({ ...varForm, fuel_kind: kind.id })}
-                    >
-                      {kind.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
             {varError && <p className="field-error">{varError}</p>}
             <button className="btn-primary">
               <Plus size={18} /> Lançar gasto
             </button>
           </form>
 
-          {variaveis.length === 0 ? (
+          {variaveisOutros.length === 0 ? (
             <EmptyState
               title="Nenhum gasto variável"
-              text="Registre combustível, refeição na rua, lavagem e imprevistos."
+              text="Registre refeição na rua, lavagem e imprevistos. Combustível fica na aba Posto."
             />
           ) : (
-            variaveis.map((item) => (
+            variaveisOutros.map((item) => (
               <article key={item.id} className="card flex items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold">{item.description || labelTipo(item.type)}</p>
                   <p className="text-xs text-emerald-100/60">
                     {formatDate(item.date)} · {labelTipo(item.type)}
-                    {item.fuel_kind ? ` · ${item.fuel_kind}` : ""}
-                    {item.liters ? ` · ${Number(item.liters).toLocaleString("pt-BR")} L` : ""}
-                    {item.km_per_liter
-                      ? ` · ${Number(item.km_per_liter).toLocaleString("pt-BR")} km/l`
-                      : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

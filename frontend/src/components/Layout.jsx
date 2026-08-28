@@ -1,4 +1,4 @@
-import { CalendarClock, FileText, LayoutDashboard, LogOut, Receipt, Target, Wallet } from "lucide-react";
+import { CalendarClock, FileText, Fuel, LayoutDashboard, LogOut, Receipt, Target, Wallet } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -10,6 +10,7 @@ const links = [
   { to: "/", label: "Início", icon: LayoutDashboard },
   { to: "/ganhos", label: "Ganhos", icon: Wallet },
   { to: "/gastos", label: "Gastos", icon: Receipt },
+  { to: "/combustivel", label: "Posto", icon: Fuel },
   { to: "/metas", label: "Metas", icon: Target },
   { to: "/relatorio", label: "Fechar", icon: FileText },
   { to: "/rotina", label: "Rotina", icon: CalendarClock },
@@ -63,19 +64,19 @@ export default function Layout() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-night-900/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl print:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-6">
+        <div className="mx-auto grid max-w-lg grid-cols-7">
           {links.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={to === "/"}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 py-1 text-[11px] font-semibold ${
+                `flex flex-col items-center gap-0.5 py-1 text-[10px] font-semibold ${
                   isActive ? "text-lime" : "text-emerald-200/50"
                 }`
               }
             >
-              <Icon size={20} />
+              <Icon size={18} />
               {label}
             </NavLink>
           ))}

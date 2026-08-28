@@ -65,7 +65,7 @@ function successMessage(method, path) {
 }
 
 async function request(path, options = {}) {
-  const { silent = false, cache = true, headers: extraHeaders, ...fetchOptions } = options;
+  const { silent = false, cache = true, okMessage, headers: extraHeaders, ...fetchOptions } = options;
   const method = String(fetchOptions.method || "GET").toUpperCase();
   const isGet = method === "GET";
 
@@ -90,7 +90,7 @@ async function request(path, options = {}) {
 
   if (response.status === 204) {
     if (!isGet) invalidateApiCache();
-    if (!silent && !isGet) notify("success", successMessage(method, path));
+    if (!silent && !isGet) notify("success", okMessage || successMessage(method, path));
     return null;
   }
 
@@ -130,7 +130,7 @@ async function request(path, options = {}) {
     getCache.set(path, data);
   } else if (!isGet) {
     invalidateApiCache();
-    if (!silent) notify("success", successMessage(method, path));
+    if (!silent) notify("success", okMessage || successMessage(method, path));
   }
 
   return data;
@@ -206,8 +206,8 @@ export const api = {
   },
   gastosVariaveis: {
     list: (y, m) => request(`/api/gastos-variaveis?${qs(y, m)}`),
-    create: (body) =>
-      request("/api/gastos-variaveis", { method: "POST", body: JSON.stringify(body) }),
+    create: (body, extra = {}) =>
+      request("/api/gastos-variaveis", { method: "POST", body: JSON.stringify(body), ...extra }),
     remove: (id) => request(`/api/gastos-variaveis/${id}`, { method: "DELETE" }),
   },
   ganhos: {

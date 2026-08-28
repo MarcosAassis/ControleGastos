@@ -123,7 +123,7 @@ export default function Dashboard() {
       {mesAtual && hoje?.tem_lancamento && hoje.eficiencia && (
         <EfficiencyCard eficiencia={hoje.eficiencia} titulo="Eficiência de hoje" />
       )}
-      <FuelCard consumo={combustivel} />
+      <FuelCard consumo={combustivel} to="/combustivel" />
 
       <section className="card space-y-3">
         <div className="flex items-center justify-between">
