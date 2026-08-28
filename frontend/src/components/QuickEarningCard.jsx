@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronUp, Clock, Sparkles, Zap } from "lucide-react";
+import { CheckCircle2, Clock, Sparkles, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { brl, km, todayISO } from "../utils/format.js";
 
 export default function QuickEarningCard({ hoje, metas, onSaved }) {
-  const [isOpen, setIsOpen] = useState(!hoje?.tem_lancamento);
+  const [isOpen, setIsOpen] = useState(false);
   const [grossAmount, setGrossAmount] = useState(
     hoje?.ganho ? String(hoje.ganho) : ""
   );
@@ -47,6 +47,7 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
         hours_worked: hoursWorked !== "" ? Number(hoursWorked) : null,
       });
       setSuccessMsg("Turno de hoje registrado com sucesso!");
+      setIsOpen(false);
       if (onSaved) {
         await onSaved();
       }
@@ -67,11 +68,23 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
   return (
     <section className="card border-lime/30 bg-gradient-to-b from-night-800 to-night-900 shadow-glow">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-lime/15 text-lime">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsOpen((open) => !open)}
+            aria-expanded={isOpen}
+            aria-label={isOpen ? "Fechar lançamento rápido" : "Abrir lançamento rápido"}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition ${
+              isOpen ? "bg-lime text-night-950 shadow-glow" : "bg-lime/15 text-lime hover:bg-lime/25"
+            }`}
+          >
             <Zap size={18} />
-          </div>
-          <div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsOpen((open) => !open)}
+            className="min-w-0 text-left"
+          >
             <div className="flex items-center gap-2">
               <h2 className="font-display text-base font-bold">Lançamento Rápido</h2>
               {hoje?.tem_lancamento && (
@@ -80,27 +93,11 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
                 </span>
               )}
             </div>
-            <p className="text-xs text-emerald-100/70">Fim de turno do dia atual</p>
-          </div>
-        </div>
-
-        {hoje?.tem_lancamento && (
-          <button
-            type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-1 text-xs font-semibold text-lime transition hover:text-lime-dim"
-          >
-            {isOpen ? (
-              <>
-                Fechar <ChevronUp size={14} />
-              </>
-            ) : (
-              <>
-                Editar <ChevronDown size={14} />
-              </>
-            )}
+            <p className="text-xs text-emerald-100/70">
+              {isOpen ? "Fim de turno do dia atual" : "Toque no raio para lançar o turno"}
+            </p>
           </button>
-        )}
+        </div>
       </div>
 
       {/* Resumo compacto quando já preenchido e fechado */}
@@ -140,7 +137,7 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
                 value={grossAmount}
                 onChange={(e) => setGrossAmount(e.target.value)}
                 required
-                autoFocus={!hoje?.tem_lancamento}
+                autoFocus={isOpen}
               />
             </div>
 
