@@ -148,6 +148,23 @@ export default function Relatorio() {
           )}
           {eficiencia?.rs_por_km != null && <p>Rendimento: {brl(eficiencia.rs_por_km)}/km</p>}
           {eficiencia?.rs_por_hora != null && <p>Rendimento: {brl(eficiencia.rs_por_hora)}/h</p>}
+          {dash.combustivel?.km_per_liter != null && (
+            <p>
+              Consumo: {Number(dash.combustivel.km_per_liter).toLocaleString("pt-BR")} km/l
+            </p>
+          )}
+          {dash.combustivel?.rs_per_km != null && (
+            <p>Combustível: {brl(dash.combustivel.rs_per_km)}/km</p>
+          )}
+          {Number(metas.provisao_descanso) > 0 && (
+            <p>Provisão 13º/férias: {brl(metas.provisao_descanso)}</p>
+          )}
+          {Number(metas.folgas_aplicadas) > 0 && (
+            <p>
+              Dias trabalhados: {metas.dias_trabalhados_mes} ({metas.dias_calendario} −{" "}
+              {metas.folgas_aplicadas} folga{metas.folgas_aplicadas === 1 ? "" : "s"})
+            </p>
+          )}
         </div>
 
         <section>

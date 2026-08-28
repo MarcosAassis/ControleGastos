@@ -4,10 +4,13 @@ import { api } from "../api.js";
 import EmptyState from "../components/EmptyState.jsx";
 import GoalBanner from "../components/GoalBanner.jsx";
 import { useMonth } from "../context/MonthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import { brl, formatDate, km, todayISO } from "../utils/format.js";
+import { hoursFieldProps, kmFieldProps, moneyFieldProps, parseAmount, parseOptionalAmount } from "../utils/validate.js";
 
 export default function Ganhos() {
   const { year, month } = useMonth();
+  const { celebrate } = useToast();
   const [lista, setLista] = useState([]);
   const [form, setForm] = useState({
     date: todayISO(),
@@ -53,15 +56,31 @@ export default function Ganhos() {
     event.preventDefault();
     setSaving(true);
     setError("");
+    const gross = parseAmount(form.gross_amount, { required: true, label: "faturamento" });
+    const kmVal = parseAmount(form.km_driven, { label: "km" });
+    const hours = parseOptionalAmount(form.hours_worked, { label: "horas" });
+    if (!gross.ok || !kmVal.ok || !hours.ok) {
+      setError(gross.error || kmVal.error || hours.error);
+      setSaving(false);
+      return;
+    }
     try {
       const saved = await api.ganhos.save({
         date: form.date,
-        gross_amount: Number(form.gross_amount || 0),
-        km_driven: Number(form.km_driven || 0),
-        hours_worked: form.hours_worked !== "" ? Number(form.hours_worked) : null,
+        gross_amount: gross.value,
+        km_driven: kmVal.value,
+        hours_worked: hours.value,
         notes: form.notes || null,
       });
       setStatus(saved);
+      if (saved.atingida) {
+        celebrate({
+          kind: "day",
+          key: form.date,
+          title: "Meta do dia batida!",
+          subtitle: "Parabéns. O faturamento deste dia chegou a 100% da meta.",
+        });
+      }
       await load();
     } catch (err) {
       setError(err.message);
@@ -103,9 +122,7 @@ export default function Ganhos() {
           <div>
             <label className="label">Valor bruto (R$)</label>
             <input
-              type="number"
-              min="0"
-              step="0.01"
+              {...moneyFieldProps}
               className="field"
               placeholder="0,00"
               value={form.gross_amount}
@@ -116,9 +133,7 @@ export default function Ganhos() {
           <div>
             <label className="label">Km rodados</label>
             <input
-              type="number"
-              min="0"
-              step="0.1"
+              {...kmFieldProps}
               className="field"
               placeholder="0"
               value={form.km_driven}
@@ -128,9 +143,7 @@ export default function Ganhos() {
           <div>
             <label className="label">Horas trabalhadas</label>
             <input
-              type="number"
-              min="0"
-              step="0.5"
+              {...hoursFieldProps}
               className="field"
               placeholder="Ex: 8"
               value={form.hours_worked}

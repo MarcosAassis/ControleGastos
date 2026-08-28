@@ -70,6 +70,9 @@ class GoalSettings(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     monthly_net_profit: Mapped[float] = mapped_column(Float, default=0.0)
     monthly_contingency: Mapped[float] = mapped_column(Float, default=0.0)
+    include_13th: Mapped[bool] = mapped_column(Boolean, default=False)
+    vacation_days_year: Mapped[int] = mapped_column(Integer, default=0)
+    planned_rest_days: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -85,6 +88,9 @@ class MonthlyGoal(Base):
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     monthly_net_profit: Mapped[float] = mapped_column(Float, default=0.0)
     monthly_contingency: Mapped[float] = mapped_column(Float, default=0.0)
+    include_13th: Mapped[bool] = mapped_column(Boolean, default=False)
+    vacation_days_year: Mapped[int] = mapped_column(Integer, default=0)
+    planned_rest_days: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -132,6 +138,9 @@ class VariableExpense(Base):
     type: Mapped[str] = mapped_column(String(40), nullable=False)
     description: Mapped[str] = mapped_column(String(200), default="")
     amount: Mapped[float] = mapped_column(Float, nullable=False)
+    liters: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
+    odometer_km: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
+    fuel_kind: Mapped[str | None] = mapped_column(String(20), nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

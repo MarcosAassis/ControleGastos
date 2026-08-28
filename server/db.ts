@@ -17,6 +17,9 @@ export interface GoalSetting {
   user_id: number;
   monthly_net_profit: number;
   monthly_contingency: number;
+  include_13th?: boolean;
+  vacation_days_year?: number;
+  planned_rest_days?: number;
   updated_at: string;
 }
 
@@ -27,6 +30,9 @@ export interface MonthlyGoal {
   month: number;
   monthly_net_profit: number;
   monthly_contingency: number;
+  include_13th?: boolean;
+  vacation_days_year?: number;
+  planned_rest_days?: number;
   updated_at: string;
 }
 
@@ -74,6 +80,9 @@ export interface VariableExpense {
   type: string;
   amount: number;
   description?: string | null;
+  liters?: number | null;
+  odometer_km?: number | null;
+  fuel_kind?: string | null;
   created_at: string;
 }
 

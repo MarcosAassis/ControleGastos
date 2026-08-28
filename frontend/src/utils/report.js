@@ -17,6 +17,8 @@ export function buildMonthSummaryText({ userName, year, month, dash, eficiencia 
   const r = dash?.realizado || {};
   const p = dash?.progresso || {};
   const e = eficiencia || dash?.eficiencia || {};
+  const c = dash?.combustivel || {};
+  const m = dash?.metas || {};
   const linhas = [
     `*Fechamento — ${periodo}*`,
     userName ? `Motorista: ${userName}` : "",
@@ -32,6 +34,16 @@ export function buildMonthSummaryText({ userName, year, month, dash, eficiencia 
     r.horas_total ? `Horas lançadas: ${Number(r.horas_total).toLocaleString("pt-BR")} h` : "",
     e.rs_por_km != null ? `Rendimento: ${brl(e.rs_por_km)}/km` : "",
     e.rs_por_hora != null ? `Rendimento: ${brl(e.rs_por_hora)}/h` : "",
+    c.km_per_liter != null
+      ? `Consumo: ${Number(c.km_per_liter).toLocaleString("pt-BR")} km/l`
+      : "",
+    c.rs_per_km != null ? `Combustível: ${brl(c.rs_per_km)}/km` : "",
+    m.provisao_descanso > 0 ? `Provisão 13º/férias: ${brl(m.provisao_descanso)}` : "",
+    m.folgas_aplicadas > 0
+      ? `Dias trabalhados: ${m.dias_trabalhados_mes} (${m.dias_calendario} − ${m.folgas_aplicadas} folga${
+          m.folgas_aplicadas === 1 ? "" : "s"
+        })`
+      : "",
     p.contas_pagas != null
       ? `Contas: ${p.contas_pagas} pagas · ${p.contas_pendentes} pendentes`
       : "",
@@ -50,7 +62,7 @@ function csvCell(value) {
 }
 
 export function buildMonthCsv({ ganhos, fixos, variaveis }) {
-  const header = ["Data", "Tipo", "Descrição", "Valor (R$)", "Km", "Horas"];
+  const header = ["Data", "Tipo", "Descrição", "Valor (R$)", "Km", "Horas", "Litros", "Odômetro"];
   const rows = [header];
 
   const ganhosOrdenados = [...(ganhos || [])].sort((a, b) =>
@@ -64,6 +76,8 @@ export function buildMonthCsv({ ganhos, fixos, variaveis }) {
       Number(item.gross_amount || 0).toFixed(2).replace(".", ","),
       item.km_driven || "",
       item.hours_worked ?? "",
+      "",
+      "",
     ]);
   }
 
@@ -73,6 +87,8 @@ export function buildMonthCsv({ ganhos, fixos, variaveis }) {
       item.paid ? "Gasto fixo (pago)" : "Gasto fixo (pendente)",
       item.name || "",
       Number(item.amount || 0).toFixed(2).replace(".", ","),
+      "",
+      "",
       "",
       "",
     ]);
@@ -87,8 +103,10 @@ export function buildMonthCsv({ ganhos, fixos, variaveis }) {
       "Gasto variável",
       [tipoVariavel(item.type), item.description].filter(Boolean).join(" — "),
       Number(item.amount || 0).toFixed(2).replace(".", ","),
+      item.km_since_last || "",
       "",
-      "",
+      item.liters || "",
+      item.odometer_km || "",
     ]);
   }
 

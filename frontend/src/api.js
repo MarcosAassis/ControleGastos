@@ -16,29 +16,97 @@ export function clearStoredAuth() {
 }
 
 let authToken = getStoredToken();
+const getCache = new Map();
+let toastHandler = null;
 
 export function setAuthToken(token) {
   authToken = token || "";
 }
 
+export function setApiToastHandler(handler) {
+  toastHandler = handler;
+}
+
+export function invalidateApiCache() {
+  getCache.clear();
+}
+
+function notify(type, message) {
+  if (toastHandler && message) toastHandler({ type, message });
+}
+
+function friendlyNetworkError(error) {
+  const raw = String(error?.message || error || "");
+  if (
+    error?.name === "TypeError" ||
+    /failed to fetch|networkerror|load failed|network request failed/i.test(raw)
+  ) {
+    return "Sem conexão no momento. Confira a internet e tente de novo.";
+  }
+  if (/abort/i.test(raw)) {
+    return "A requisição foi interrompida. Tente de novo.";
+  }
+  return raw || "Não foi possível concluir a operação.";
+}
+
+function successMessage(method, path) {
+  if (method === "DELETE") {
+    if (path.includes("/metas")) return "Meta padrão restaurada.";
+    return "Registro removido.";
+  }
+  if (path.includes("/pagamento")) return "Pagamento atualizado.";
+  if (path.includes("/rotina/dia")) return "Dia da rotina atualizado.";
+  if (path.includes("/rotina")) return "Rotina salva.";
+  if (path.includes("/metas")) return "Metas atualizadas.";
+  if (path.includes("/ganhos")) return "Ganho salvo.";
+  if (path.includes("/gastos-variaveis")) return "Gasto lançado.";
+  if (path.includes("/gastos-fixos")) return "Conta salva.";
+  return "Salvo com sucesso.";
+}
+
 async function request(path, options = {}) {
-  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  const { silent = false, cache = true, headers: extraHeaders, ...fetchOptions } = options;
+  const method = String(fetchOptions.method || "GET").toUpperCase();
+  const isGet = method === "GET";
+
+  if (isGet && cache && getCache.has(path)) {
+    return getCache.get(path);
+  }
+
+  const headers = { "Content-Type": "application/json", ...(extraHeaders || {}) };
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
-  if (response.status === 204) return null;
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...fetchOptions,
+      headers,
+    });
+  } catch (error) {
+    const message = friendlyNetworkError(error);
+    if (!silent) notify("error", message);
+    throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    if (!isGet) invalidateApiCache();
+    if (!silent && !isGet) notify("success", successMessage(method, path));
+    return null;
+  }
+
   const contentType = response.headers.get("content-type") || "";
   const data = contentType.includes("application/json")
     ? await response.json().catch(() => ({}))
     : {};
+
   if (response.status === 401) {
     clearStoredAuth();
+    invalidateApiCache();
     if (!path.startsWith("/api/auth/")) {
       window.location.assign("/login");
     }
   }
+
   if (!response.ok) {
     const detail = data.detail;
     const message =
@@ -47,39 +115,55 @@ async function request(path, options = {}) {
         : Array.isArray(detail)
           ? detail.map((item) => item.msg || item).join(" ")
           : "Não foi possível concluir a operação.";
+    if (!silent && !isGet && response.status !== 401) notify("error", message);
     throw new Error(message);
   }
+
   if (!contentType.includes("application/json")) {
-    throw new Error(
-      "Não foi possível falar com a API. Confira se o backend está no ar e se VITE_API_URL aponta para ele.",
-    );
+    const message =
+      "Não foi possível falar com a API. Confira se o backend está no ar e se VITE_API_URL aponta para ele.";
+    if (!silent) notify("error", message);
+    throw new Error(message);
   }
+
+  if (isGet && cache) {
+    getCache.set(path, data);
+  } else if (!isGet) {
+    invalidateApiCache();
+    if (!silent) notify("success", successMessage(method, path));
+  }
+
   return data;
 }
 
 const qs = (year, month) => `ano=${year}&mes=${month}`;
+const silent = { silent: true };
 
 export const api = {
   auth: {
     register: (body) =>
-      request("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
+      request("/api/auth/register", { method: "POST", body: JSON.stringify(body), ...silent }),
     resendRegister: (body) =>
-      request("/api/auth/register/resend", { method: "POST", body: JSON.stringify(body) }),
+      request("/api/auth/register/resend", { method: "POST", body: JSON.stringify(body), ...silent }),
     confirmRegister: (body) =>
-      request("/api/auth/register/confirm", { method: "POST", body: JSON.stringify(body) }),
+      request("/api/auth/register/confirm", { method: "POST", body: JSON.stringify(body), ...silent }),
     login: (body) =>
-      request("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
+      request("/api/auth/login", { method: "POST", body: JSON.stringify(body), ...silent }),
     requestLoginCode: (body) =>
-      request("/api/auth/login/code", { method: "POST", body: JSON.stringify(body) }),
+      request("/api/auth/login/code", { method: "POST", body: JSON.stringify(body), ...silent }),
     confirmLoginCode: (body) =>
-      request("/api/auth/login/confirm", { method: "POST", body: JSON.stringify(body) }),
+      request("/api/auth/login/confirm", { method: "POST", body: JSON.stringify(body), ...silent }),
     forgotPassword: (body) =>
-      request("/api/auth/forgot-password", { method: "POST", body: JSON.stringify(body) }),
+      request("/api/auth/forgot-password", { method: "POST", body: JSON.stringify(body), ...silent }),
     verifyResetCode: (body) =>
-      request("/api/auth/reset-password/verify", { method: "POST", body: JSON.stringify(body) }),
+      request("/api/auth/reset-password/verify", {
+        method: "POST",
+        body: JSON.stringify(body),
+        ...silent,
+      }),
     resetPassword: (body) =>
-      request("/api/auth/reset-password", { method: "POST", body: JSON.stringify(body) }),
-    me: () => request("/api/auth/me"),
+      request("/api/auth/reset-password", { method: "POST", body: JSON.stringify(body), ...silent }),
+    me: () => request("/api/auth/me", silent),
   },
   dashboard: (y, m) => request(`/api/dashboard?${qs(y, m)}`),
   historico: (y, m) => request(`/api/dashboard/historico?${qs(y, m)}`),

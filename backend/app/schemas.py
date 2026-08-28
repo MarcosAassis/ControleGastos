@@ -111,6 +111,9 @@ class WorkDayToggleIn(BaseModel):
 class GoalSettingsIn(BaseModel):
     monthly_net_profit: float = Field(ge=0)
     monthly_contingency: float = Field(ge=0)
+    include_13th: bool = False
+    vacation_days_year: int = Field(default=0, ge=0, le=60)
+    planned_rest_days: int = Field(default=0, ge=0, le=20)
     year: int | None = None
     month: int | None = Field(default=None, ge=1, le=12)
     save_as_default: bool = False
@@ -120,6 +123,9 @@ class GoalSettingsOut(BaseModel):
     id: int | None = None
     monthly_net_profit: float
     monthly_contingency: float
+    include_13th: bool = False
+    vacation_days_year: int = 0
+    planned_rest_days: int = 0
     year: int | None = None
     month: int | None = None
     is_custom: bool = False
@@ -154,11 +160,28 @@ class VariableExpenseIn(BaseModel):
     type: str = Field(min_length=1, max_length=40)
     description: str = ""
     amount: float = Field(gt=0)
+    liters: float | None = Field(default=None, ge=0)
+    odometer_km: float | None = Field(default=None, ge=0)
+    fuel_kind: str | None = None
+
+    @field_validator("fuel_kind")
+    @classmethod
+    def validar_fuel(cls, value: str | None) -> str | None:
+        if not value:
+            return None
+        kind = value.strip().lower()
+        if kind not in {"etanol", "gasolina"}:
+            raise ValueError("Informe etanol ou gasolina.")
+        return kind
 
 
 class VariableExpenseOut(VariableExpenseIn):
     id: int
     created_at: datetime
+    price_per_liter: float | None = None
+    km_since_last: float | None = None
+    km_per_liter: float | None = None
+    rs_per_km: float | None = None
 
     model_config = {"from_attributes": True}
 
@@ -200,3 +223,12 @@ class MetasOut(BaseModel):
     is_custom: bool = False
     ano: int | None = None
     mes: int | None = None
+    include_13th: bool = False
+    vacation_days_year: int = 0
+    planned_rest_days: int = 0
+    dias_calendario: int = 0
+    folgas_aplicadas: int = 0
+    dias_uteis_ano: int = 0
+    provisao_13: float = 0
+    provisao_ferias: float = 0
+    provisao_descanso: float = 0

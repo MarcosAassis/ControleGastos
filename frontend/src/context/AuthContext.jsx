@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, clearStoredAuth, getStoredToken, setAuthToken } from "../api.js";
+import { api, clearStoredAuth, getStoredToken, invalidateApiCache, setAuthToken } from "../api.js";
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = "uber_financas_token";
@@ -94,6 +94,7 @@ export function AuthProvider({ children }) {
         clearStoredAuth();
         localStorage.removeItem(STORAGE_TYPE_KEY);
         sessionStorage.removeItem(STORAGE_TYPE_KEY);
+        invalidateApiCache();
         setAuthToken("");
         setToken("");
         setUser(null);

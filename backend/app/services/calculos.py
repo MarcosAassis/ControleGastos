@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from ..models import DailyEarning, FixedExpense, FixedExpensePayment, VariableExpense
 from . import get_goals_for_month, get_or_create_goals, get_or_create_routine
 from .agenda import dates_in_month, load_overrides, parse_weekdays, working_dates
+from .combustivel import montar_consumo_combustivel
+from .provisao import campos_provisao, dias_apos_folgas, montar_provisao
 
 
 def _round_money(value: float) -> float:
@@ -33,8 +35,8 @@ def calcular_metas(
     db: Session, user_id: int, year: int | None = None, month: int | None = None
 ) -> dict:
     """
-    Meta bruta = Gastos Fixos + Lucro Líquido desejado + Reserva de Imprevistos.
-    Meta diária = total / dias trabalhados no mês.
+    Meta bruta = Gastos Fixos + Lucro Líquido + Reserva + Provisão de 13º/férias.
+    Meta diária = total / dias trabalhados no mês (calendário menos folgas planejadas).
     Meta semanal = meta diária * dias por semana.
     Meta por hora = meta diária / horas trabalhadas por dia.
     Os dias do mês vêm do calendário (dias da semana marcados + ajustes pontuais).
@@ -50,11 +52,20 @@ def calcular_metas(
     start, end = month_range(year, month)
     overrides = load_overrides(db, user_id, start, end)
     dias_calendario = working_dates(year, month, weekdays, overrides)
-    dias = max(len(dias_calendario), 1)
+    include_13th, vacation_days_year, planned_rest_days = campos_provisao(settings)
     dias_semana = max(len(weekdays), 1)
+    provisao = montar_provisao(
+        settings.monthly_net_profit, include_13th, vacation_days_year, dias_semana
+    )
+    dias, folgas_aplicadas = dias_apos_folgas(len(dias_calendario), planned_rest_days)
     horas = max(routine.hours_per_day, 0.1)
 
-    total = gastos_fixos + settings.monthly_net_profit + settings.monthly_contingency
+    total = (
+        gastos_fixos
+        + settings.monthly_net_profit
+        + settings.monthly_contingency
+        + provisao["provisao_descanso"]
+    )
     meta_diaria = total / dias
     meta_semanal = meta_diaria * dias_semana
     meta_hora = meta_diaria / horas
@@ -66,7 +77,7 @@ def calcular_metas(
         "reserva_imprevistos": _round_money(settings.monthly_contingency),
         "total_necessario": _round_money(total),
         "custo_fixo_diario": _round_money(custo_fixo_diario),
-        "dias_trabalhados_mes": len(dias_calendario),
+        "dias_trabalhados_mes": dias,
         "dias_por_semana": len(weekdays),
         "horas_por_dia": routine.hours_per_day,
         "meta_bruta_mensal": _round_money(total),
@@ -74,12 +85,21 @@ def calcular_metas(
         "meta_bruta_diaria": _round_money(meta_diaria),
         "meta_por_hora": _round_money(meta_hora),
         "formula": (
-            "(Gastos Fixos + Lucro Líquido + Reserva de Imprevistos) "
+            "(Gastos Fixos + Lucro Líquido + Reserva + Provisão 13º/férias) "
             "/ Dias trabalhados no mês"
         ),
         "is_custom": is_custom,
         "ano": year,
         "mes": month,
+        "include_13th": include_13th,
+        "vacation_days_year": vacation_days_year,
+        "planned_rest_days": planned_rest_days,
+        "dias_calendario": len(dias_calendario),
+        "folgas_aplicadas": folgas_aplicadas,
+        "dias_uteis_ano": provisao["dias_uteis_ano"],
+        "provisao_13": provisao["provisao_13"],
+        "provisao_ferias": provisao["provisao_ferias"],
+        "provisao_descanso": provisao["provisao_descanso"],
     }
 
 
@@ -223,6 +243,10 @@ def montar_dashboard(db: Session, user_id: int, year: int, month: int) -> dict:
             "dias_com_ganho": len(earnings),
         },
         "eficiencia": eficiencia,
+        "combustivel": montar_consumo_combustivel(
+            [v for v in variables if (v.type or "").lower() == "combustivel"],
+            km_total,
+        ),
         "progresso": {
             "meta_mensal_pct": _round_money(meta_pct),
             "pagamentos_pct": _round_money(pagamentos_pct),

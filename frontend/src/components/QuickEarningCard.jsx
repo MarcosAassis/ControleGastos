@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Clock, Sparkles, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { brl, km, todayISO } from "../utils/format.js";
+import { hoursFieldProps, kmFieldProps, moneyFieldProps, parseAmount, parseOptionalAmount } from "../utils/validate.js";
 
 export default function QuickEarningCard({ hoje, metas, onSaved }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,7 +20,6 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
       : "8"
   );
   const [saving, setSaving] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -38,20 +38,25 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
     e.preventDefault();
     setSaving(true);
     setError("");
-    setSuccessMsg("");
+    const gross = parseAmount(grossAmount, { required: true, label: "faturamento" });
+    const kmVal = parseAmount(kmDriven, { label: "km" });
+    const hours = parseOptionalAmount(hoursWorked, { label: "horas" });
+    if (!gross.ok || !kmVal.ok || !hours.ok) {
+      setError(gross.error || kmVal.error || hours.error);
+      setSaving(false);
+      return;
+    }
     try {
       await api.ganhos.save({
         date: todayISO(),
-        gross_amount: Number(grossAmount || 0),
-        km_driven: Number(kmDriven || 0),
-        hours_worked: hoursWorked !== "" ? Number(hoursWorked) : null,
+        gross_amount: gross.value,
+        km_driven: kmVal.value,
+        hours_worked: hours.value,
       });
-      setSuccessMsg("Turno de hoje registrado com sucesso!");
       setIsOpen(false);
       if (onSaved) {
         await onSaved();
       }
-      setTimeout(() => setSuccessMsg(""), 4000);
     } catch (err) {
       setError(err.message || "Erro ao salvar lançamento rápido.");
     } finally {
@@ -129,9 +134,7 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
                 </label>
               </div>
               <input
-                type="number"
-                min="0"
-                step="0.01"
+                {...moneyFieldProps}
                 className="field mt-1 h-11 py-2 text-sm font-bold text-lime placeholder-emerald-100/30"
                 placeholder="0,00"
                 value={grossAmount}
@@ -146,9 +149,7 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
                 <label className="label mb-0 truncate text-xs font-medium">Km rodados</label>
               </div>
               <input
-                type="number"
-                min="0"
-                step="0.1"
+                {...kmFieldProps}
                 className="field mt-1 h-11 py-2 text-sm font-semibold placeholder-emerald-100/30"
                 placeholder="Ex: 150"
                 value={kmDriven}
@@ -172,9 +173,7 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
               </div>
               <div className="relative mt-1">
                 <input
-                  type="number"
-                  min="0"
-                  step="0.5"
+                  {...hoursFieldProps}
                   className="field h-11 py-2 pr-10 text-sm font-semibold placeholder-emerald-100/30"
                   placeholder="Ex: 8"
                   value={hoursWorked}
@@ -188,11 +187,6 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
           </div>
 
           {error && <p className="text-xs font-semibold text-rose-300">{error}</p>}
-          {successMsg && (
-            <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-lime">
-              <CheckCircle2 size={13} /> {successMsg}
-            </p>
-          )}
 
           <button
             type="submit"

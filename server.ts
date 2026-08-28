@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { createServer as createViteServer } from "vite";
 import { dbInstance, User } from "./server/db";
+import { camposProvisao } from "./server/provisao";
 import {
   calcularMetas,
   getGoalsForMonth,
@@ -13,6 +14,7 @@ import {
   monthRange,
   montarDashboard,
   montarHistorico,
+  enrichVariableExpense,
   getDatesInMonth,
   getIsoWeekday,
   getWorkingDates,
@@ -355,33 +357,49 @@ async function startServer() {
   });
 
   // ================= METAS ROUTES =================
+  function goalConfigOut(goals: { id: number; monthly_net_profit: number; monthly_contingency: number; updated_at: string; include_13th?: boolean; vacation_days_year?: number; planned_rest_days?: number }, year: number, month: number, isCustom: boolean) {
+    const { include13th, vacationDaysYear, plannedRestDays } = camposProvisao(goals);
+    return {
+      id: goals.id,
+      monthly_net_profit: goals.monthly_net_profit,
+      monthly_contingency: goals.monthly_contingency,
+      include_13th: include13th,
+      vacation_days_year: vacationDaysYear,
+      planned_rest_days: plannedRestDays,
+      year,
+      month,
+      is_custom: isCustom,
+      updated_at: goals.updated_at,
+    };
+  }
+
+  function applyGoalFields(target: { monthly_net_profit: number; monthly_contingency: number; include_13th?: boolean; vacation_days_year?: number; planned_rest_days?: number; updated_at: string }, body: any) {
+    const { include13th, vacationDaysYear, plannedRestDays } = camposProvisao(body || {});
+    target.monthly_net_profit = Number(body.monthly_net_profit) || 0;
+    target.monthly_contingency = Number(body.monthly_contingency) || 0;
+    target.include_13th = include13th;
+    target.vacation_days_year = vacationDaysYear;
+    target.planned_rest_days = plannedRestDays;
+    target.updated_at = new Date().toISOString();
+  }
+
   app.get("/api/metas/config", authMiddleware, (req: AuthRequest, res) => {
     const now = new Date();
     const year = Number(req.query.ano) || now.getFullYear();
     const month = Number(req.query.mes) || now.getMonth() + 1;
     const { goals, isCustom } = getGoalsForMonth(req.user!.id, year, month);
-    return res.json({
-      id: goals.id,
-      monthly_net_profit: goals.monthly_net_profit,
-      monthly_contingency: goals.monthly_contingency,
-      year,
-      month,
-      is_custom: isCustom,
-      updated_at: goals.updated_at,
-    });
+    return res.json(goalConfigOut(goals, year, month, isCustom));
   });
 
   app.put("/api/metas/config", authMiddleware, (req: AuthRequest, res) => {
-    const { monthly_net_profit, monthly_contingency, save_as_default, year: reqYear, month: reqMonth } = req.body;
+    const { save_as_default, year: reqYear, month: reqMonth } = req.body;
     const now = new Date();
     const targetYear = Number(reqYear || req.query.ano) || now.getFullYear();
     const targetMonth = Number(reqMonth || req.query.mes) || now.getMonth() + 1;
 
     if (save_as_default) {
       const def = getOrCreateGoals(req.user!.id);
-      def.monthly_net_profit = Number(monthly_net_profit) || 0;
-      def.monthly_contingency = Number(monthly_contingency) || 0;
-      def.updated_at = new Date().toISOString();
+      applyGoalFields(def, req.body);
       const customIdx = dbInstance.db.monthly_goals.findIndex(
         (g) => g.user_id === req.user!.id && g.year === targetYear && g.month === targetMonth
       );
@@ -389,15 +407,7 @@ async function startServer() {
         dbInstance.db.monthly_goals.splice(customIdx, 1);
       }
       dbInstance.save();
-      return res.json({
-        id: def.id,
-        monthly_net_profit: def.monthly_net_profit,
-        monthly_contingency: def.monthly_contingency,
-        year: targetYear,
-        month: targetMonth,
-        is_custom: false,
-        updated_at: def.updated_at,
-      });
+      return res.json(goalConfigOut(def, targetYear, targetMonth, false));
     }
 
     let monthly = dbInstance.db.monthly_goals.find(
@@ -409,27 +419,16 @@ async function startServer() {
         user_id: req.user!.id,
         year: targetYear,
         month: targetMonth,
-        monthly_net_profit: Number(monthly_net_profit) || 0,
-        monthly_contingency: Number(monthly_contingency) || 0,
+        monthly_net_profit: 0,
+        monthly_contingency: 0,
         updated_at: new Date().toISOString(),
       };
       dbInstance.db.monthly_goals.push(monthly);
-    } else {
-      monthly.monthly_net_profit = Number(monthly_net_profit) || 0;
-      monthly.monthly_contingency = Number(monthly_contingency) || 0;
-      monthly.updated_at = new Date().toISOString();
     }
+    applyGoalFields(monthly, req.body);
     getOrCreateGoals(req.user!.id);
     dbInstance.save();
-    return res.json({
-      id: monthly.id,
-      monthly_net_profit: monthly.monthly_net_profit,
-      monthly_contingency: monthly.monthly_contingency,
-      year: targetYear,
-      month: targetMonth,
-      is_custom: true,
-      updated_at: monthly.updated_at,
-    });
+    return res.json(goalConfigOut(monthly, targetYear, targetMonth, true));
   });
 
   app.delete("/api/metas/config", authMiddleware, (req: AuthRequest, res) => {
@@ -443,15 +442,7 @@ async function startServer() {
       dbInstance.save();
     }
     const def = getOrCreateGoals(req.user!.id);
-    return res.json({
-      id: def.id,
-      monthly_net_profit: def.monthly_net_profit,
-      monthly_contingency: def.monthly_contingency,
-      year,
-      month,
-      is_custom: false,
-      updated_at: def.updated_at,
-    });
+    return res.json(goalConfigOut(def, year, month, false));
   });
 
   app.get("/api/metas/calculo", authMiddleware, (req: AuthRequest, res) => {
@@ -603,16 +594,22 @@ async function startServer() {
     const year = Number(req.query.ano) || now.getFullYear();
     const month = Number(req.query.mes) || now.getMonth() + 1;
     const { start, end } = monthRange(year, month);
-    const items = dbInstance.db.variable_expenses
-      .filter((v) => v.user_id === req.user!.id && v.date >= start && v.date <= end)
-      .sort((a, b) => b.date.localeCompare(a.date));
-    return res.json(items);
+    const allUser = dbInstance.db.variable_expenses.filter((v) => v.user_id === req.user!.id);
+    const items = allUser
+      .filter((v) => v.date >= start && v.date <= end)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+    return res.json(items.map((item) => enrichVariableExpense(allUser, item)));
   });
 
   app.post("/api/gastos-variaveis", authMiddleware, (req: AuthRequest, res) => {
-    const { date: dateStr, type, amount, description } = req.body;
+    const { date: dateStr, type, amount, description, liters, odometer_km, fuel_kind } = req.body;
     if (!dateStr || !type || amount === undefined) {
       return res.status(400).json({ detail: "Data, tipo e valor são obrigatórios." });
+    }
+    const isFuel = String(type).toLowerCase() === "combustivel";
+    const kind = String(fuel_kind || "").trim().toLowerCase();
+    if (isFuel && kind && kind !== "etanol" && kind !== "gasolina") {
+      return res.status(400).json({ detail: "Informe etanol ou gasolina." });
     }
     const item = {
       id: dbInstance.getNextId("variable_expenses"),
@@ -621,11 +618,15 @@ async function startServer() {
       type: String(type),
       amount: Number(amount) || 0,
       description: description || null,
+      liters: isFuel && liters ? Number(liters) : null,
+      odometer_km: isFuel && odometer_km ? Number(odometer_km) : null,
+      fuel_kind: isFuel && kind ? kind : null,
       created_at: new Date().toISOString(),
     };
     dbInstance.db.variable_expenses.push(item);
     dbInstance.save();
-    return res.status(201).json(item);
+    const allUser = dbInstance.db.variable_expenses.filter((v) => v.user_id === req.user!.id);
+    return res.status(201).json(enrichVariableExpense(allUser, item));
   });
 
   app.delete("/api/gastos-variaveis/:id", authMiddleware, (req: AuthRequest, res) => {

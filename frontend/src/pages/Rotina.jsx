@@ -42,6 +42,8 @@ export default function Rotina() {
         month
       );
       await load(saved);
+    } catch {
+      /* toast global */
     } finally {
       setSaving(false);
     }
@@ -60,6 +62,8 @@ export default function Rotina() {
     try {
       const saved = await api.rotina.toggleDia(iso);
       await load(saved);
+    } catch {
+      /* toast global */
     } finally {
       setSaving(false);
     }
@@ -75,6 +79,8 @@ export default function Rotina() {
         month
       );
       await load(saved);
+    } catch {
+      /* toast global */
     } finally {
       setSaving(false);
     }
@@ -158,6 +164,15 @@ export default function Rotina() {
           <Row label="Meta bruta diária" value={brl(calc.meta_bruta_diaria)} />
           <Row label="Meta por hora" value={brl(calc.meta_por_hora)} />
           <Row label="Custo fixo diário" value={brl(calc.custo_fixo_diario)} />
+          {Number(calc.provisao_descanso) > 0 && (
+            <Row label="Provisão 13º/férias" value={brl(calc.provisao_descanso)} />
+          )}
+          {Number(calc.folgas_aplicadas) > 0 && (
+            <Row
+              label="Dias após folgas"
+              value={`${calc.dias_trabalhados_mes} (${calc.dias_calendario} − ${calc.folgas_aplicadas})`}
+            />
+          )}
         </section>
       )}
     </div>

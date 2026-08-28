@@ -9,8 +9,35 @@ from ..models import MonthlyGoal, User
 from ..schemas import GoalSettingsIn, GoalSettingsOut, MetasOut
 from ..services import get_goals_for_month, get_or_create_goals
 from ..services.calculos import calcular_metas
+from ..services.provisao import campos_provisao
 
 router = APIRouter()
+
+
+def _goal_out(goals, *, year=None, month=None, is_custom=False) -> GoalSettingsOut:
+    include_13th, vacation_days_year, planned_rest_days = campos_provisao(goals)
+    return GoalSettingsOut(
+        id=getattr(goals, "id", None),
+        monthly_net_profit=goals.monthly_net_profit,
+        monthly_contingency=goals.monthly_contingency,
+        include_13th=include_13th,
+        vacation_days_year=vacation_days_year,
+        planned_rest_days=planned_rest_days,
+        year=year,
+        month=month,
+        is_custom=is_custom,
+        updated_at=getattr(goals, "updated_at", None),
+    )
+
+
+def _apply_goals(target, payload: GoalSettingsIn) -> None:
+    include_13th, vacation_days_year, planned_rest_days = campos_provisao(payload)
+    target.monthly_net_profit = payload.monthly_net_profit
+    target.monthly_contingency = payload.monthly_contingency
+    target.include_13th = include_13th
+    target.vacation_days_year = vacation_days_year
+    target.planned_rest_days = planned_rest_days
+    target.updated_at = datetime.utcnow()
 
 
 @router.get("/config", response_model=GoalSettingsOut)
@@ -22,23 +49,9 @@ def get_config(
 ):
     if ano and mes:
         goals, is_custom = get_goals_for_month(db, user.id, ano, mes)
-        return GoalSettingsOut(
-            id=getattr(goals, "id", None),
-            monthly_net_profit=goals.monthly_net_profit,
-            monthly_contingency=goals.monthly_contingency,
-            year=ano,
-            month=mes,
-            is_custom=is_custom,
-            updated_at=goals.updated_at,
-        )
+        return _goal_out(goals, year=ano, month=mes, is_custom=is_custom)
     settings = get_or_create_goals(db, user.id)
-    return GoalSettingsOut(
-        id=settings.id,
-        monthly_net_profit=settings.monthly_net_profit,
-        monthly_contingency=settings.monthly_contingency,
-        is_custom=False,
-        updated_at=settings.updated_at,
-    )
+    return _goal_out(settings, is_custom=False)
 
 
 @router.put("/config", response_model=GoalSettingsOut)
@@ -54,9 +67,7 @@ def update_config(
 
     if payload.save_as_default or not (target_year and target_month):
         settings = get_or_create_goals(db, user.id)
-        settings.monthly_net_profit = payload.monthly_net_profit
-        settings.monthly_contingency = payload.monthly_contingency
-        settings.updated_at = datetime.utcnow()
+        _apply_goals(settings, payload)
         if target_year and target_month:
             monthly = (
                 db.query(MonthlyGoal)
@@ -71,14 +82,8 @@ def update_config(
                 db.delete(monthly)
         db.commit()
         db.refresh(settings)
-        return GoalSettingsOut(
-            id=settings.id,
-            monthly_net_profit=settings.monthly_net_profit,
-            monthly_contingency=settings.monthly_contingency,
-            year=target_year,
-            month=target_month,
-            is_custom=False,
-            updated_at=settings.updated_at,
+        return _goal_out(
+            settings, year=target_year, month=target_month, is_custom=False
         )
 
     monthly = (
@@ -95,29 +100,15 @@ def update_config(
             user_id=user.id,
             year=target_year,
             month=target_month,
-            monthly_net_profit=payload.monthly_net_profit,
-            monthly_contingency=payload.monthly_contingency,
         )
         db.add(monthly)
-    else:
-        monthly.monthly_net_profit = payload.monthly_net_profit
-        monthly.monthly_contingency = payload.monthly_contingency
-        monthly.updated_at = datetime.utcnow()
+    _apply_goals(monthly, payload)
 
-    # Garantir que a configuração base exista para integridade
     get_or_create_goals(db, user.id)
 
     db.commit()
     db.refresh(monthly)
-    return GoalSettingsOut(
-        id=monthly.id,
-        monthly_net_profit=monthly.monthly_net_profit,
-        monthly_contingency=monthly.monthly_contingency,
-        year=target_year,
-        month=target_month,
-        is_custom=True,
-        updated_at=monthly.updated_at,
-    )
+    return _goal_out(monthly, year=target_year, month=target_month, is_custom=True)
 
 
 @router.delete("/config", response_model=GoalSettingsOut)
@@ -141,15 +132,7 @@ def reset_config(
         db.commit()
 
     settings = get_or_create_goals(db, user.id)
-    return GoalSettingsOut(
-        id=settings.id,
-        monthly_net_profit=settings.monthly_net_profit,
-        monthly_contingency=settings.monthly_contingency,
-        year=ano,
-        month=mes,
-        is_custom=False,
-        updated_at=settings.updated_at,
-    )
+    return _goal_out(settings, year=ano, month=mes, is_custom=False)
 
 
 @router.get("/calculo", response_model=MetasOut)

@@ -28,13 +28,13 @@ Este documento reúne o planejamento estratégico, novas funcionalidades propost
 - [x] **Sincronização Imediata:** Atualização em tempo real das metas e cartões do Dashboard ao salvar.
 
 ### 3. Calculadora de Abastecimento & Consumo de Combustível
-- [ ] **Registro de Litros e Odômetro:** Campos opcionais no lançamento de despesa de combustível.
-- [ ] **Cálculo de Consumo Médio:** Apuração de `km/l` e custo de combustível por km rodado (`R$/km`).
-- [ ] **Comparador Etanol x Gasolina:** Simulador da regra dos 70% com preços locais.
+- [x] **Registro de Litros e Odômetro:** Campos opcionais no lançamento de despesa de combustível.
+- [x] **Cálculo de Consumo Médio:** Apuração de `km/l` e custo de combustível por km rodado (`R$/km`).
+- [x] **Comparador Etanol x Gasolina:** Simulador da regra dos 70% com preços locais.
 
 ### 4. Simulador de Folgas e Férias Remuneradas
-- [ ] **Provisão de 13º e Descanso:** Cálculo de taxa mensal para reserva de férias/folgas.
-- [ ] **Recálculo Automático das Metas Diárias:** Ajustar meta por dia trabalhado considerando os dias de descanso planejados.
+- [x] **Provisão de 13º e Descanso:** Cálculo de taxa mensal para reserva de férias/folgas.
+- [x] **Recálculo Automático das Metas Diárias:** Ajustar meta por dia trabalhado considerando os dias de descanso planejados.
 
 ### 5. Exportação e Fechamento Mensal
 - [x] **Resumo para Impressão/PDF:** Relatório consolidado de faturamento, custos fixos pagos, despesas variáveis e lucro líquido.
@@ -46,13 +46,13 @@ Este documento reúne o planejamento estratégico, novas funcionalidades propost
 ## 🛠️ Melhorias Técnicas e de UX
 
 ### Experiência do Usuário (UI/UX & Mobile)
-- [ ] **Celebração de Meta Batida:** Feedback visual e animação quando o faturamento do dia/mês atingir 100% da meta.
-- [ ] **Toasts Globais de Notificação:** Avisos claros de sucesso e erro ao salvar registros em conexões instáveis.
-- [ ] **Validação de Formulários:** Impedir entradas acidentais de valores negativos ou formatações inválidas.
+- [x] **Celebração de Meta Batida:** Feedback visual e animação quando o faturamento do dia/mês atingir 100% da meta.
+- [x] **Toasts Globais de Notificação:** Avisos claros de sucesso e erro ao salvar registros em conexões instáveis.
+- [x] **Validação de Formulários:** Impedir entradas acidentais de valores negativos ou formatações inválidas.
 
 ### Performance & Código
-- [ ] **Otimização de Carregamento:** Memoização de chamadas de API ao alternar abas dentro do mesmo mês.
-- [ ] **Padronização de Tratamento de Erros:** Interceptor centralizado no cliente HTTP para capturar quedas de rede de forma amigável.
+- [x] **Otimização de Carregamento:** Memoização de chamadas de API ao alternar abas dentro do mesmo mês.
+- [x] **Padronização de Tratamento de Erros:** Interceptor centralizado no cliente HTTP para capturar quedas de rede de forma amigável.
 
 ---
 

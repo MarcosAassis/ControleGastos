@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import EfficiencyCard from "../components/EfficiencyCard.jsx";
+import FuelCard from "../components/FuelCard.jsx";
 import GoalBanner from "../components/GoalBanner.jsx";
 import ProgressBar from "../components/ProgressBar.jsx";
 import QuickEarningCard from "../components/QuickEarningCard.jsx";
 import { useMonth } from "../context/MonthContext.jsx";
-import { brl, km, pct } from "../utils/format.js";
+import { useToast } from "../context/ToastContext.jsx";
+import { brl, km, pct, todayISO } from "../utils/format.js";
 
 export default function Dashboard() {
   const { year, month } = useMonth();
+  const { celebrate } = useToast();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
@@ -27,6 +30,44 @@ export default function Dashboard() {
     loadData();
   }, [year, month]);
 
+  useEffect(() => {
+    if (!data?.hoje || !data.progresso || !data.metas) return;
+    const dayKey = todayISO();
+    const monthKey = `${year}-${month}`;
+    const dayHit = Boolean(data.hoje.atingida && data.hoje.tem_lancamento);
+    const monthHit =
+      Number(data.progresso.meta_mensal_pct) >= 100 && Number(data.metas.meta_bruta_mensal) > 0;
+    const dayNew = dayHit && !sessionStorage.getItem(`uber_financas_celeb_day_${dayKey}`);
+    const monthNew = monthHit && !sessionStorage.getItem(`uber_financas_celeb_month_${monthKey}`);
+    if (dayNew && monthNew) {
+      celebrate({
+        kind: "month",
+        key: monthKey,
+        title: "Dia e mês batidos!",
+        subtitle: "O faturamento de hoje e o do mês chegaram a 100% da meta.",
+      });
+      sessionStorage.setItem(`uber_financas_celeb_day_${dayKey}`, "1");
+      return;
+    }
+    if (monthNew) {
+      celebrate({
+        kind: "month",
+        key: monthKey,
+        title: "Meta do mês fechada!",
+        subtitle: "O faturamento do mês chegou a 100% da meta.",
+      });
+      return;
+    }
+    if (dayNew) {
+      celebrate({
+        kind: "day",
+        key: dayKey,
+        title: "Meta do dia batida!",
+        subtitle: "Parabéns. O faturamento de hoje chegou a 100% da meta.",
+      });
+    }
+  }, [data, year, month, celebrate]);
+
   if (error) {
     return <p className="card text-sm text-rose-300">{error}</p>;
   }
@@ -34,7 +75,7 @@ export default function Dashboard() {
     return <p className="pt-10 text-center text-emerald-100/60">Carregando painel...</p>;
   }
 
-  const { realizado, progresso, metas, hoje = {}, eficiencia } = data;
+  const { realizado, progresso, metas, hoje = {}, eficiencia, combustivel } = data;
   if (!realizado || !progresso || !metas) {
     return (
       <p className="card text-sm text-rose-300">
@@ -82,6 +123,7 @@ export default function Dashboard() {
       {mesAtual && hoje?.tem_lancamento && hoje.eficiencia && (
         <EfficiencyCard eficiencia={hoje.eficiencia} titulo="Eficiência de hoje" />
       )}
+      <FuelCard consumo={combustivel} />
 
       <section className="card space-y-3">
         <div className="flex items-center justify-between">
@@ -91,6 +133,9 @@ export default function Dashboard() {
         <ProgressBar value={progresso.meta_mensal_pct} />
         <p className="text-sm text-emerald-100/70">
           {brl(realizado.faturamento_uber)} de {brl(metas.meta_bruta_mensal)}
+          {Number(metas.provisao_descanso) > 0
+            ? ` · inclui ${brl(metas.provisao_descanso)} de 13º/férias`
+            : ""}
         </p>
       </section>
 
@@ -120,7 +165,16 @@ export default function Dashboard() {
       </section>
 
       <section className="grid grid-cols-2 gap-3">
-        <MiniCard title="Meta diária" value={brl(metas.meta_bruta_diaria)} to="/metas" />
+        <MiniCard
+          title="Meta diária"
+          value={brl(metas.meta_bruta_diaria)}
+          to="/metas"
+          hint={
+            Number(metas.folgas_aplicadas) > 0
+              ? `${metas.dias_trabalhados_mes} dias · ${metas.folgas_aplicadas} folga(s)`
+              : null
+          }
+        />
         <MiniCard title="Custo fixo/dia" value={brl(metas.custo_fixo_diario)} to="/gastos" />
       </section>
 
@@ -149,11 +203,12 @@ function Metric({ label, value }) {
   );
 }
 
-function MiniCard({ title, value, to }) {
+function MiniCard({ title, value, to, hint }) {
   return (
     <Link to={to} className="card block">
       <p className="text-xs text-emerald-200/70">{title}</p>
       <p className="mt-1 font-display text-xl font-bold">{value}</p>
+      {hint ? <p className="mt-1 text-[11px] text-emerald-100/50">{hint}</p> : null}
     </Link>
   );
 }

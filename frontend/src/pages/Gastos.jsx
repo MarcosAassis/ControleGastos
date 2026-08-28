@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, Plus, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import EmptyState from "../components/EmptyState.jsx";
+import FuelCard from "../components/FuelCard.jsx";
+import FuelComparator from "../components/FuelComparator.jsx";
 import { useMonth } from "../context/MonthContext.jsx";
 import { brl, formatDate, maskDateBR, parseDateBR, todayISO } from "../utils/format.js";
+import { moneyFieldProps, parseAmount, parseOptionalAmount } from "../utils/validate.js";
 
 const SUGESTOES_FIXAS = [
   { name: "Aluguel", category: "casa" },
@@ -30,6 +33,7 @@ export default function Gastos() {
   const [fixos, setFixos] = useState([]);
   const [variaveis, setVariaveis] = useState([]);
   const [metas, setMetas] = useState(null);
+  const [consumo, setConsumo] = useState(null);
   const [fixoForm, setFixoForm] = useState({
     name: "",
     amount: "",
@@ -37,22 +41,28 @@ export default function Gastos() {
     due_date: "",
   });
   const [dateError, setDateError] = useState("");
-  const [varForm, setVarForm] = useState({
+  const [varError, setVarError] = useState("");
+  const emptyVar = {
     date: todayISO(),
     type: "combustivel",
     description: "",
     amount: "",
-  });
+    liters: "",
+    odometer_km: "",
+    fuel_kind: "gasolina",
+  };
+  const [varForm, setVarForm] = useState(emptyVar);
 
   const load = async () => {
-    const [fixed, vars, calc] = await Promise.all([
+    const [fixed, vars, dash] = await Promise.all([
       api.gastosFixos.list(year, month),
       api.gastosVariaveis.list(year, month),
-      api.metas.calculo(year, month),
+      api.dashboard(year, month),
     ]);
     setFixos(fixed);
     setVariaveis(vars);
-    setMetas(calc);
+    setMetas(dash.metas);
+    setConsumo(dash.combustivel);
   };
 
   useEffect(() => {
@@ -75,29 +85,64 @@ export default function Gastos() {
       setDateError("Use a data no formato dd/mm/aaaa.");
       return;
     }
+    const amount = parseAmount(fixoForm.amount, { required: true, min: 0.01, label: "valor" });
+    if (!amount.ok) {
+      setDateError(amount.error);
+      return;
+    }
+    if (!fixoForm.name.trim()) {
+      setDateError("Informe o nome da conta.");
+      return;
+    }
     setDateError("");
-    await api.gastosFixos.create(
-      {
-        name: fixoForm.name,
-        amount: Number(fixoForm.amount),
-        category: fixoForm.category,
-        due_date: dueDateISO,
-      },
-      year,
-      month
-    );
-    setFixoForm({ name: "", amount: "", category: "casa", due_date: "" });
-    await load();
+    try {
+      await api.gastosFixos.create(
+        {
+          name: fixoForm.name.trim(),
+          amount: amount.value,
+          category: fixoForm.category,
+          due_date: dueDateISO,
+        },
+        year,
+        month
+      );
+      setFixoForm({ name: "", amount: "", category: "casa", due_date: "" });
+      await load();
+    } catch {
+      /* toast global */
+    }
   };
 
   const addVariavel = async (event) => {
     event.preventDefault();
-    await api.gastosVariaveis.create({
-      ...varForm,
-      amount: Number(varForm.amount),
-    });
-    setVarForm({ date: todayISO(), type: "combustivel", description: "", amount: "" });
-    await load();
+    const isFuel = varForm.type === "combustivel";
+    const amount = parseAmount(varForm.amount, { required: true, min: 0.01, label: "valor" });
+    const liters = parseOptionalAmount(varForm.liters, { label: "litros" });
+    const odometer = parseOptionalAmount(varForm.odometer_km, { label: "odômetro" });
+    if (!amount.ok || !liters.ok || !odometer.ok) {
+      setVarError(amount.error || liters.error || odometer.error);
+      return;
+    }
+    if (!varForm.date) {
+      setVarError("Informe a data.");
+      return;
+    }
+    setVarError("");
+    try {
+      await api.gastosVariaveis.create({
+        date: varForm.date,
+        type: varForm.type,
+        description: varForm.description,
+        amount: amount.value,
+        liters: isFuel ? liters.value : null,
+        odometer_km: isFuel ? odometer.value : null,
+        fuel_kind: isFuel ? varForm.fuel_kind : null,
+      });
+      setVarForm({ ...emptyVar, date: todayISO() });
+      await load();
+    } catch {
+      /* toast global */
+    }
   };
 
   return (
@@ -153,9 +198,7 @@ export default function Gastos() {
               required
             />
             <input
-              type="number"
-              min="0.01"
-              step="0.01"
+              {...moneyFieldProps}
               className="field"
               placeholder="Valor mensal"
               value={fixoForm.amount}
@@ -238,6 +281,9 @@ export default function Gastos() {
             </p>
           </section>
 
+          <FuelCard consumo={consumo} />
+          <FuelComparator />
+
           <form onSubmit={addVariavel} className="card space-y-3">
             <h2 className="font-display font-semibold">Novo gasto variável</h2>
             <div className="flex flex-wrap gap-2">
@@ -268,15 +314,51 @@ export default function Gastos() {
               onChange={(e) => setVarForm({ ...varForm, description: e.target.value })}
             />
             <input
-              type="number"
-              min="0.01"
-              step="0.01"
+              {...moneyFieldProps}
               className="field"
               placeholder="Valor"
               value={varForm.amount}
               onChange={(e) => setVarForm({ ...varForm, amount: e.target.value })}
               required
             />
+            {varForm.type === "combustivel" && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    {...moneyFieldProps}
+                    className="field"
+                    placeholder="Litros (opcional)"
+                    value={varForm.liters}
+                    onChange={(e) => setVarForm({ ...varForm, liters: e.target.value })}
+                  />
+                  <input
+                    {...moneyFieldProps}
+                    step="0.1"
+                    className="field"
+                    placeholder="Odômetro km"
+                    value={varForm.odometer_km}
+                    onChange={(e) => setVarForm({ ...varForm, odometer_km: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "gasolina", label: "Gasolina" },
+                    { id: "etanol", label: "Etanol" },
+                  ].map((kind) => (
+                    <button
+                      type="button"
+                      key={kind.id}
+                      className={`rounded-xl py-2 text-sm font-bold ${
+                        varForm.fuel_kind === kind.id ? "bg-lime text-night-950" : "bg-white/5"
+                      }`}
+                      onClick={() => setVarForm({ ...varForm, fuel_kind: kind.id })}
+                    >
+                      {kind.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            {varError && <p className="field-error">{varError}</p>}
             <button className="btn-primary">
               <Plus size={18} /> Lançar gasto
             </button>
@@ -294,6 +376,11 @@ export default function Gastos() {
                   <p className="font-semibold">{item.description || labelTipo(item.type)}</p>
                   <p className="text-xs text-emerald-100/60">
                     {formatDate(item.date)} · {labelTipo(item.type)}
+                    {item.fuel_kind ? ` · ${item.fuel_kind}` : ""}
+                    {item.liters ? ` · ${Number(item.liters).toLocaleString("pt-BR")} L` : ""}
+                    {item.km_per_liter
+                      ? ` · ${Number(item.km_per_liter).toLocaleString("pt-BR")} km/l`
+                      : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

@@ -7,7 +7,7 @@ export default function GoalBanner({ ganho, meta, faltam, atingida, progresso })
   return (
     <section
       className={`card ${
-        atingida ? "border-lime/40 shadow-glow" : "border-amber-300/20"
+        atingida ? "goal-hit border-lime/40 shadow-glow" : "border-amber-300/20"
       }`}
     >
       <div className="mb-3 flex items-start justify-between gap-3">

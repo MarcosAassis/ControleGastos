@@ -1,14 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Palmtree } from "lucide-react";
 import { api } from "../api.js";
 import ProgressBar from "../components/ProgressBar.jsx";
 import { useMonth } from "../context/MonthContext.jsx";
 import { brl, monthLabel } from "../utils/format.js";
+import { diasAposFolgas, montarProvisao } from "../utils/provisao.js";
+import { intFieldProps, moneyFieldProps, parseAmount } from "../utils/validate.js";
 
 export default function Metas() {
   const { year, month } = useMonth();
   const [config, setConfig] = useState({
     monthly_net_profit: "",
     monthly_contingency: "",
+    include_13th: false,
+    vacation_days_year: "0",
+    planned_rest_days: "0",
   });
   const [isCustom, setIsCustom] = useState(false);
   const [calc, setCalc] = useState(null);
@@ -23,6 +29,9 @@ export default function Metas() {
     setConfig({
       monthly_net_profit: String(cfg.monthly_net_profit || ""),
       monthly_contingency: String(cfg.monthly_contingency || ""),
+      include_13th: Boolean(cfg.include_13th),
+      vacation_days_year: String(cfg.vacation_days_year ?? 0),
+      planned_rest_days: String(cfg.planned_rest_days ?? 0),
     });
     setIsCustom(Boolean(cfg.is_custom));
     setCalc(metas);
@@ -33,27 +42,58 @@ export default function Metas() {
     load().catch(console.error);
   }, [year, month]);
 
+  const preview = useMemo(() => {
+    const lucro = Number(config.monthly_net_profit || 0);
+    const reserva = Number(config.monthly_contingency || 0);
+    const fixos = calc?.gastos_fixos_mensal || 0;
+    const diasCal = calc?.dias_calendario ?? calc?.dias_trabalhados_mes ?? 0;
+    const prov = montarProvisao(
+      lucro,
+      config.include_13th,
+      config.vacation_days_year,
+      calc?.dias_por_semana || 5,
+    );
+    const { dias, aplicadas } = diasAposFolgas(diasCal, config.planned_rest_days);
+    const total = fixos + lucro + reserva + prov.provisao_descanso;
+    return {
+      ...prov,
+      dias,
+      aplicadas,
+      diasCal,
+      total,
+      diaria: dias ? total / dias : 0,
+    };
+  }, [config, calc]);
+
   const handleSave = async (saveAsDefault = false) => {
+    const lucro = parseAmount(config.monthly_net_profit, { label: "lucro líquido" });
+    const reserva = parseAmount(config.monthly_contingency, { label: "reserva" });
+    const ferias = parseAmount(config.vacation_days_year, { max: 60, label: "dias de férias" });
+    const folgas = parseAmount(config.planned_rest_days, { max: 20, label: "folgas" });
+    if (!lucro.ok || !reserva.ok || !ferias.ok || !folgas.ok) {
+      setMessage(lucro.error || reserva.error || ferias.error || folgas.error);
+      return;
+    }
     setSaving(true);
     setMessage("");
     try {
       await api.metas.saveConfig(
         {
-          monthly_net_profit: Number(config.monthly_net_profit || 0),
-          monthly_contingency: Number(config.monthly_contingency || 0),
+          monthly_net_profit: lucro.value,
+          monthly_contingency: reserva.value,
+          include_13th: Boolean(config.include_13th),
+          vacation_days_year: Math.round(ferias.value),
+          planned_rest_days: Math.round(folgas.value),
           year,
           month,
           save_as_default: saveAsDefault,
         },
         year,
-        month
+        month,
       );
       await load();
-      setMessage(
-        saveAsDefault
-          ? "Meta padrão atualizada para todos os meses."
-          : `Metas de ${monthLabel(year, month)} salvas com sucesso.`
-      );
+    } catch {
+      /* toast global */
     } finally {
       setSaving(false);
     }
@@ -65,7 +105,8 @@ export default function Metas() {
     try {
       await api.metas.resetConfig(year, month);
       await load();
-      setMessage(`Meta padrão restaurada para ${monthLabel(year, month)}.`);
+    } catch {
+      /* toast global */
     } finally {
       setSaving(false);
     }
@@ -97,9 +138,7 @@ export default function Metas() {
         <div>
           <label className="label">Meta de lucro líquido</label>
           <input
-            type="number"
-            min="0"
-            step="0.01"
+            {...moneyFieldProps}
             className="field"
             placeholder="Ex.: 4000"
             value={config.monthly_net_profit}
@@ -109,9 +148,7 @@ export default function Metas() {
         <div>
           <label className="label">Reserva de imprevistos</label>
           <input
-            type="number"
-            min="0"
-            step="0.01"
+            {...moneyFieldProps}
             className="field"
             placeholder="Manutenção, pneu, óleo"
             value={config.monthly_contingency}
@@ -149,14 +186,105 @@ export default function Metas() {
         {message && <p className="text-sm font-medium text-lime">{message}</p>}
       </form>
 
+      <section className="card space-y-4">
+        <div className="flex items-start gap-2">
+          <Palmtree size={18} className="mt-0.5 shrink-0 text-lime" />
+          <div>
+            <h2 className="font-display font-semibold">Folgas e férias remuneradas</h2>
+            <p className="text-sm text-emerald-100/70">
+              Guarda uma fatia do lucro para 13º e férias, e sobe a meta diária se você
+              planejar mais descanso neste mês.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className={`w-full rounded-xl py-2.5 text-sm font-bold ${
+            config.include_13th ? "bg-lime text-night-950" : "bg-white/5 text-emerald-100"
+          }`}
+          onClick={() => setConfig({ ...config, include_13th: !config.include_13th })}
+        >
+          {config.include_13th ? "13º incluído na reserva" : "Incluir 13º na reserva mensal"}
+        </button>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Dias de férias no ano</label>
+            <input
+              {...intFieldProps}
+              max="60"
+              className="field"
+              placeholder="30"
+              value={config.vacation_days_year}
+              onChange={(e) => setConfig({ ...config, vacation_days_year: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="label">Folgas extras neste mês</label>
+            <input
+              {...intFieldProps}
+              max="20"
+              className="field"
+              placeholder="0"
+              value={config.planned_rest_days}
+              onChange={(e) => setConfig({ ...config, planned_rest_days: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white/5 p-3 text-sm space-y-1.5">
+          <p className="flex justify-between gap-3">
+            <span className="text-emerald-100/70">Provisão 13º</span>
+            <span className="font-bold">{brl(preview.provisao_13)}</span>
+          </p>
+          <p className="flex justify-between gap-3">
+            <span className="text-emerald-100/70">Provisão férias (+1/3)</span>
+            <span className="font-bold">{brl(preview.provisao_ferias)}</span>
+          </p>
+          <p className="flex justify-between gap-3">
+            <span className="text-emerald-100/70">A guardar no mês</span>
+            <span className="font-bold text-lime">{brl(preview.provisao_descanso)}</span>
+          </p>
+          <p className="flex justify-between gap-3 pt-1 text-xs text-emerald-100/60">
+            <span>
+              {preview.diasCal} dias no calendário
+              {preview.aplicadas ? ` − ${preview.aplicadas} folga(s)` : ""}
+            </span>
+            <span>{preview.dias} dia(s) para trabalhar</span>
+          </p>
+          <p className="flex justify-between gap-3 pt-1">
+            <span className="text-emerald-100/70">Meta diária recálculada</span>
+            <span className="font-display text-lg font-bold">{brl(preview.diaria)}</span>
+          </p>
+        </div>
+        <p className="text-xs text-emerald-100/50">
+          13º = lucro ÷ 12. Férias = lucro × (dias de férias ÷ dias úteis do ano) × 4/3.
+          Toque em salvar para aplicar no painel.
+        </p>
+        <button className="btn-primary" type="button" disabled={saving} onClick={() => handleSave(false)}>
+          {saving ? "Salvando..." : "Aplicar folgas e provisão"}
+        </button>
+      </section>
+
       {calc && (
         <>
           <section className="card space-y-3">
             <p className="text-xs text-emerald-200/70">Fórmula</p>
             <p className="text-sm leading-relaxed text-emerald-50/90">
-              Gastos fixos ({brl(calc.gastos_fixos_mensal)}) + lucro líquido ({brl(calc.lucro_liquido_alvo)}) +
-              reserva ({brl(calc.reserva_imprevistos)}) = {brl(calc.total_necessario)}.
-              Esse total é dividido por {calc.dias_trabalhados_mes} dias trabalhados no mês.
+              Gastos fixos ({brl(calc.gastos_fixos_mensal)}) + lucro líquido ({brl(calc.lucro_liquido_alvo)})
+              + reserva ({brl(calc.reserva_imprevistos)})
+              {Number(calc.provisao_descanso) > 0
+                ? ` + provisão 13º/férias (${brl(calc.provisao_descanso)})`
+                : ""}{" "}
+              = {brl(calc.total_necessario)}. Esse total é dividido por {calc.dias_trabalhados_mes}{" "}
+              dias trabalhados no mês
+              {Number(calc.folgas_aplicadas) > 0
+                ? ` (${calc.dias_calendario} no calendário − ${calc.folgas_aplicadas} folga${
+                    calc.folgas_aplicadas === 1 ? "" : "s"
+                  })`
+                : ""}
+              .
             </p>
             <ProgressBar value={100} />
           </section>
@@ -189,4 +317,3 @@ function GoalCard({ title, value, highlight }) {
     </article>
   );
 }
-

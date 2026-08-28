@@ -105,6 +105,34 @@ def migrate_schema():
         if earnings_cols and "hours_worked" not in earnings_cols:
             conn.execute(text("ALTER TABLE daily_earnings ADD COLUMN hours_worked FLOAT"))
 
+        for table in ("goal_settings", "monthly_goals"):
+            cols = _table_columns(conn, table)
+            if not cols:
+                continue
+            if "include_13th" not in cols:
+                conn.execute(
+                    text(f"ALTER TABLE {table} ADD COLUMN include_13th BOOLEAN DEFAULT FALSE")
+                )
+            if "vacation_days_year" not in cols:
+                conn.execute(
+                    text(f"ALTER TABLE {table} ADD COLUMN vacation_days_year INTEGER DEFAULT 0")
+                )
+            if "planned_rest_days" not in cols:
+                conn.execute(
+                    text(f"ALTER TABLE {table} ADD COLUMN planned_rest_days INTEGER DEFAULT 0")
+                )
+
+        var_cols = _table_columns(conn, "variable_expenses")
+        if var_cols:
+            if "liters" not in var_cols:
+                conn.execute(text("ALTER TABLE variable_expenses ADD COLUMN liters FLOAT"))
+            if "odometer_km" not in var_cols:
+                conn.execute(text("ALTER TABLE variable_expenses ADD COLUMN odometer_km FLOAT"))
+            if "fuel_kind" not in var_cols:
+                conn.execute(
+                    text("ALTER TABLE variable_expenses ADD COLUMN fuel_kind VARCHAR(20)")
+                )
+
         for table in (
             "work_routines",
             "work_day_overrides",
