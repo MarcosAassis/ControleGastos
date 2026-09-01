@@ -57,7 +57,7 @@ function successMessage(method, path) {
   if (path.includes("/pagamento")) return "Pagamento atualizado.";
   if (path.includes("/rotina/dia")) return "Dia da rotina atualizado.";
   if (path.includes("/rotina")) return "Rotina salva.";
-  if (path.includes("/metas")) return "Metas atualizadas.";
+  if (path.includes("/auth/me")) return "Chave PIX salva.";
   if (path.includes("/ganhos")) return "Ganho salvo.";
   if (path.includes("/gastos-variaveis")) return "Gasto lançado.";
   if (path.includes("/gastos-fixos")) return "Conta salva.";
@@ -164,6 +164,8 @@ export const api = {
     resetPassword: (body) =>
       request("/api/auth/reset-password", { method: "POST", body: JSON.stringify(body), ...silent }),
     me: () => request("/api/auth/me", silent),
+    savePix: (body) =>
+      request("/api/auth/me", { method: "PUT", body: JSON.stringify(body), okMessage: "Chave PIX salva." }),
   },
   dashboard: (y, m) => request(`/api/dashboard?${qs(y, m)}`),
   historico: (y, m) => request(`/api/dashboard/historico?${qs(y, m)}`),

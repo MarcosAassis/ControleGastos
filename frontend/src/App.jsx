@@ -8,6 +8,7 @@ import Ganhos from "./pages/Ganhos.jsx";
 import Gastos from "./pages/Gastos.jsx";
 import Login from "./pages/Login.jsx";
 import Metas from "./pages/Metas.jsx";
+import Perfil from "./pages/Perfil.jsx";
 import RecuperarSenha from "./pages/RecuperarSenha.jsx";
 import Relatorio from "./pages/Relatorio.jsx";
 import Rotina from "./pages/Rotina.jsx";
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/metas" element={<Metas />} />
           <Route path="/relatorio" element={<Relatorio />} />
           <Route path="/rotina" element={<Rotina />} />
+          <Route path="/perfil" element={<Perfil />} />
           <Route path="/uber" element={<Navigate to="/" replace />} />
         </Route>
       </Route>

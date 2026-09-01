@@ -164,3 +164,14 @@ def migrate_schema():
 
         conn.execute(text("DROP TABLE IF EXISTS uber_oauth_states"))
         conn.execute(text("DROP TABLE IF EXISTS uber_connections"))
+
+        user_cols = _table_columns(conn, "users")
+        if user_cols:
+            if "pix_key" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN pix_key VARCHAR(120) DEFAULT ''"))
+            if "pix_key_type" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN pix_key_type VARCHAR(20) DEFAULT 'cpf'"))
+            if "pix_name" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN pix_name VARCHAR(25) DEFAULT ''"))
+            if "pix_city" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN pix_city VARCHAR(15) DEFAULT ''"))

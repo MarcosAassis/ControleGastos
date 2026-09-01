@@ -10,6 +10,10 @@ export interface User {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  pix_key?: string;
+  pix_key_type?: string;
+  pix_name?: string;
+  pix_city?: string;
 }
 
 export interface GoalSetting {

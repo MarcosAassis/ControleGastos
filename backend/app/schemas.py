@@ -72,9 +72,44 @@ class UserOut(BaseModel):
     id: int
     name: str
     email: str
-    created_at: datetime
+    created_at: datetime | None = None
+    pix_key: str = ""
+    pix_key_type: str = "cpf"
+    pix_name: str = ""
+    pix_city: str = ""
 
     model_config = {"from_attributes": True}
+
+    @field_validator("pix_key", "pix_name", "pix_city", mode="before")
+    @classmethod
+    def vazio(cls, value) -> str:
+        return (value or "").strip()
+
+    @field_validator("pix_key_type", mode="before")
+    @classmethod
+    def tipo(cls, value) -> str:
+        tipo = (value or "cpf").strip().lower()
+        return tipo if tipo in {"cpf", "cnpj", "email", "phone", "evp"} else "cpf"
+
+
+class PixSettingsIn(BaseModel):
+    pix_key: str = Field(default="", max_length=120)
+    pix_key_type: str = Field(default="cpf", max_length=20)
+    pix_name: str = Field(default="", max_length=25)
+    pix_city: str = Field(default="", max_length=15)
+
+    @field_validator("pix_key_type")
+    @classmethod
+    def tipo_pix(cls, value: str) -> str:
+        tipo = (value or "cpf").strip().lower()
+        if tipo not in {"cpf", "cnpj", "email", "phone", "evp"}:
+            raise ValueError("Tipo de chave PIX inválido.")
+        return tipo
+
+    @field_validator("pix_key", "pix_name", "pix_city")
+    @classmethod
+    def limpar(cls, value: str) -> str:
+        return (value or "").strip()
 
 
 class TokenOut(BaseModel):

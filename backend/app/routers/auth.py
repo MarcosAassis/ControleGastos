@@ -14,6 +14,7 @@ from ..models import User
 from ..schemas import (
     EmailIn,
     MessageOut,
+    PixSettingsIn,
     RegisterConfirmIn,
     ResetPasswordIn,
     ResetTokenOut,
@@ -174,4 +175,19 @@ def reset_password(payload: ResetPasswordIn, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
+    return user
+
+
+@router.put("/me", response_model=UserOut)
+def update_me(
+    payload: PixSettingsIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    user.pix_key = payload.pix_key
+    user.pix_key_type = payload.pix_key_type
+    user.pix_name = payload.pix_name
+    user.pix_city = payload.pix_city
+    db.commit()
+    db.refresh(user)
     return user

@@ -25,6 +25,10 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(120), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    pix_key: Mapped[str] = mapped_column(String(120), default="")
+    pix_key_type: Mapped[str] = mapped_column(String(20), default="cpf")
+    pix_name: Mapped[str] = mapped_column(String(25), default="")
+    pix_city: Mapped[str] = mapped_column(String(15), default="")
 
 
 class EmailCode(Base):

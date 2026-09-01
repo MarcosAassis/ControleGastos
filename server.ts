@@ -48,9 +48,22 @@ function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
     }
     req.user = user;
     next();
-  } catch (err) {
-    return res.status(401).json({ detail: "Sessão inválida ou expirada." });
+  } catch {
+    return res.status(401).json({ detail: "Sessão inválida. Entre de novo." });
   }
+}
+
+function publicUser(user: User) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    is_active: user.is_active,
+    pix_key: user.pix_key || "",
+    pix_key_type: user.pix_key_type || "cpf",
+    pix_name: user.pix_name || "",
+    pix_city: user.pix_city || "",
+  };
 }
 
 async function startServer() {
@@ -127,7 +140,7 @@ async function startServer() {
     return res.json({
       access_token: token,
       token_type: "bearer",
-      user: { id: user.id, email: user.email, name: user.name, is_active: user.is_active },
+      user: publicUser(user),
     });
   });
 
@@ -162,7 +175,7 @@ async function startServer() {
     return res.json({
       access_token: token,
       token_type: "bearer",
-      user: { id: user.id, email: user.email, name: user.name, is_active: user.is_active },
+      user: publicUser(user),
     });
   });
 
@@ -199,13 +212,28 @@ async function startServer() {
     return res.json({
       access_token: token,
       token_type: "bearer",
-      user: { id: user.id, email: user.email, name: user.name, is_active: user.is_active },
+      user: publicUser(user),
     });
   });
 
   app.get("/api/auth/me", authMiddleware, (req: AuthRequest, res) => {
-    const u = req.user!;
-    return res.json({ id: u.id, email: u.email, name: u.name, is_active: u.is_active });
+    return res.json(publicUser(req.user!));
+  });
+
+  app.put("/api/auth/me", authMiddleware, (req: AuthRequest, res) => {
+    const user = req.user!;
+    const types = ["cpf", "cnpj", "email", "phone", "evp"];
+    const tipo = String(req.body?.pix_key_type || "cpf").trim().toLowerCase();
+    if (!types.includes(tipo)) {
+      return res.status(400).json({ detail: "Tipo de chave PIX inválido." });
+    }
+    user.pix_key = String(req.body?.pix_key || "").trim();
+    user.pix_key_type = tipo;
+    user.pix_name = String(req.body?.pix_name || "").trim().slice(0, 25);
+    user.pix_city = String(req.body?.pix_city || "").trim().slice(0, 15);
+    user.updated_at = new Date().toISOString();
+    dbInstance.save();
+    return res.json(publicUser(user));
   });
 
   // ================= DASHBOARD ROUTES =================

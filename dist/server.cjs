@@ -264,7 +264,7 @@ function totalFixedExpenses(userId, year, month) {
   }
   return roundMoney(total);
 }
-function montarMarco(year, month, amount, day, working, earnings, todayISO, metaDiariaBase) {
+function montarMarco(year, month, amount, day, working, earnings, todayISO, metaDiariaBase, totalMensal) {
   const lastDay = new Date(year, month, 0).getDate();
   const valor = Math.max(Number(amount) || 0, 0);
   let limite = Number.parseInt(String(day || 0), 10);
@@ -284,13 +284,15 @@ function montarMarco(year, month, amount, day, working, earnings, todayISO, meta
     faltam: 0,
     progresso_pct: 0,
     dias_restantes: 0,
-    meta_diaria: base
+    meta_diaria: base,
+    recalculando_mes: false
   };
   if (valor <= 0 || limite <= 0) return empty;
   const m = String(month).padStart(2, "0");
   const deadline = `${year}-${m}-${String(limite).padStart(2, "0")}`;
   const corte = todayISO < deadline ? todayISO : deadline;
-  const realizado = earnings.filter((item) => item.date <= corte).reduce((sum, item) => sum + (item.gross_amount || 0), 0);
+  const somaAte = (limiteISO) => earnings.filter((item) => item.date <= limiteISO).reduce((sum, item) => sum + (item.gross_amount || 0), 0);
+  const realizado = somaAte(corte);
   const sameMonth = todayISO.slice(0, 7) === `${year}-${m}`;
   const emAndamento = sameMonth && todayISO <= deadline;
   const vencido = todayISO > deadline;
@@ -298,7 +300,12 @@ function montarMarco(year, month, amount, day, working, earnings, todayISO, meta
   const faltam = Math.max(valor - realizado, 0);
   const remaining = working.filter((iso) => iso >= todayISO && iso <= deadline);
   const cobrando = emAndamento && !atingida && remaining.length > 0;
-  const metaDiaria = cobrando ? faltam / remaining.length : base;
+  const restamMes = working.filter((iso) => iso >= todayISO);
+  const faltamMes = Math.max((Number(totalMensal) || 0) - somaAte(todayISO), 0);
+  const recalculandoMes = sameMonth && !cobrando && (vencido || atingida) && restamMes.length > 0;
+  let metaDiaria = base;
+  if (cobrando) metaDiaria = faltam / remaining.length;
+  else if (recalculandoMes) metaDiaria = faltamMes / restamMes.length;
   const progresso = valor === 0 ? 0 : realizado / valor * 100;
   return {
     ativo: true,
@@ -313,7 +320,8 @@ function montarMarco(year, month, amount, day, working, earnings, todayISO, meta
     faltam: roundMoney(faltam),
     progresso_pct: roundMoney(Math.min(progresso, 999)),
     dias_restantes: remaining.length,
-    meta_diaria: roundMoney(metaDiaria)
+    meta_diaria: roundMoney(metaDiaria),
+    recalculando_mes: recalculandoMes
   };
 }
 function calcularMetas(userId, year, month) {
@@ -357,7 +365,8 @@ function calcularMetas(userId, year, month) {
     diasCalendario,
     earnings,
     todayISO,
-    metaDiariaBase
+    metaDiariaBase,
+    total
   );
   const metaDiaria = marco.meta_diaria;
   const metaSemanal = metaDiaria * diasSemana;
@@ -673,9 +682,21 @@ function authMiddleware(req, res, next) {
     }
     req.user = user;
     next();
-  } catch (err) {
-    return res.status(401).json({ detail: "Sess\xE3o inv\xE1lida ou expirada." });
+  } catch {
+    return res.status(401).json({ detail: "Sess\xE3o inv\xE1lida. Entre de novo." });
   }
+}
+function publicUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    is_active: user.is_active,
+    pix_key: user.pix_key || "",
+    pix_key_type: user.pix_key_type || "cpf",
+    pix_name: user.pix_name || "",
+    pix_city: user.pix_city || ""
+  };
 }
 async function startServer() {
   const app = (0, import_express.default)();
@@ -746,7 +767,7 @@ async function startServer() {
     return res.json({
       access_token: token,
       token_type: "bearer",
-      user: { id: user.id, email: user.email, name: user.name, is_active: user.is_active }
+      user: publicUser(user)
     });
   });
   app.post("/api/auth/login", (req, res) => {
@@ -777,7 +798,7 @@ async function startServer() {
     return res.json({
       access_token: token,
       token_type: "bearer",
-      user: { id: user.id, email: user.email, name: user.name, is_active: user.is_active }
+      user: publicUser(user)
     });
   });
   app.post("/api/auth/login/code", (req, res) => {
@@ -812,12 +833,26 @@ async function startServer() {
     return res.json({
       access_token: token,
       token_type: "bearer",
-      user: { id: user.id, email: user.email, name: user.name, is_active: user.is_active }
+      user: publicUser(user)
     });
   });
   app.get("/api/auth/me", authMiddleware, (req, res) => {
-    const u = req.user;
-    return res.json({ id: u.id, email: u.email, name: u.name, is_active: u.is_active });
+    return res.json(publicUser(req.user));
+  });
+  app.put("/api/auth/me", authMiddleware, (req, res) => {
+    const user = req.user;
+    const types = ["cpf", "cnpj", "email", "phone", "evp"];
+    const tipo = String(req.body?.pix_key_type || "cpf").trim().toLowerCase();
+    if (!types.includes(tipo)) {
+      return res.status(400).json({ detail: "Tipo de chave PIX inv\xE1lido." });
+    }
+    user.pix_key = String(req.body?.pix_key || "").trim();
+    user.pix_key_type = tipo;
+    user.pix_name = String(req.body?.pix_name || "").trim().slice(0, 25);
+    user.pix_city = String(req.body?.pix_city || "").trim().slice(0, 15);
+    user.updated_at = (/* @__PURE__ */ new Date()).toISOString();
+    dbInstance.save();
+    return res.json(publicUser(user));
   });
   app.get("/api/dashboard", authMiddleware, (req, res) => {
     const now = /* @__PURE__ */ new Date();

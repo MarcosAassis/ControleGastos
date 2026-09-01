@@ -72,6 +72,11 @@ export function AuthProvider({ children }) {
     return {
       user,
       ready,
+      setUser: (next) => {
+        setUser(next);
+        const storage = getStorage();
+        storage.setItem(USER_KEY, JSON.stringify(next));
+      },
       login: (body) => {
         const rememberMe = body?.remember_me !== false;
         return api.auth.login(body).then((data) => saveSession(data, rememberMe));
