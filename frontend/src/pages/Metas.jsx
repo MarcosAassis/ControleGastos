@@ -201,8 +201,8 @@ export default function Metas() {
           <div>
             <h3 className="font-display font-semibold">Meta até um dia do mês</h3>
             <p className="mt-1 text-sm text-emerald-100/70">
-              O app divide o que ainda falta por cada dia de rua até essa data. Quando bater ou
-              passar o prazo, volta a meta diária do mês.
+              Essa diária entra no lugar da meta do mês até o dia escolhido — não soma as duas.
+              Depois do prazo, o que ainda faltar no mês é dividido pelos dias de rua que restarem.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -237,7 +237,7 @@ export default function Metas() {
               {Number(preview.diaria) > 0 ? (
                 <span className="text-emerald-100/60">
                   {" "}
-                  · mês: {brl(preview.diaria)}/dia
+                  · depois do prazo o mês é recalculado
                 </span>
               ) : null}
             </p>
@@ -387,9 +387,16 @@ export default function Metas() {
             />
             <GoalCard title="Por hora" value={brl(calc.meta_por_hora)} />
           </div>
-          {calc.marco?.ativo && Number(calc.meta_diaria_base) > 0 && calc.marco.cobrando && (
+          {calc.marco?.cobrando && (
             <p className="text-sm text-emerald-100/70">
-              Meta do mês, sem o prazo: {brl(calc.meta_diaria_base)} por dia.
+              Até o dia {calc.marco.dia} vale só esta diária. Depois o mês é recalculado com o que
+              faltar.
+            </p>
+          )}
+          {calc.marco?.recalculando_mes && (
+            <p className="text-sm text-emerald-100/70">
+              Prazo encerrado. A diária agora é o que falta na meta do mês, dividido pelos dias que
+              restam.
             </p>
           )}
 

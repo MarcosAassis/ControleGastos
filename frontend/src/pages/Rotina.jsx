@@ -162,12 +162,15 @@ export default function Rotina() {
           <Row label="Meta bruta mensal" value={brl(calc.meta_bruta_mensal)} />
           <Row label="Meta bruta semanal" value={brl(calc.meta_bruta_semanal)} />
           <Row
-            label={calc.marco?.cobrando ? "Meta diária (ritmo)" : "Meta bruta diária"}
+            label={
+              calc.marco?.cobrando
+                ? "Meta diária até o prazo"
+                : calc.marco?.recalculando_mes
+                  ? "Meta diária do mês (recalculada)"
+                  : "Meta bruta diária"
+            }
             value={brl(calc.meta_bruta_diaria)}
           />
-          {calc.marco?.cobrando ? (
-            <Row label="Meta diária do mês" value={brl(calc.meta_diaria_base)} />
-          ) : null}
           <Row label="Meta por hora" value={brl(calc.meta_por_hora)} />
           <Row label="Custo fixo diário" value={brl(calc.custo_fixo_diario)} />
           {Number(calc.provisao_descanso) > 0 && (

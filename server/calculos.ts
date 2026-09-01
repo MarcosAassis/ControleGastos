@@ -118,7 +118,8 @@ export function montarMarco(
   working: string[],
   earnings: { date: string; gross_amount: number }[],
   todayISO: string,
-  metaDiariaBase: number
+  metaDiariaBase: number,
+  totalMensal: number
 ) {
   const lastDay = new Date(year, month, 0).getDate();
   const valor = Math.max(Number(amount) || 0, 0);
@@ -140,15 +141,18 @@ export function montarMarco(
     progresso_pct: 0,
     dias_restantes: 0,
     meta_diaria: base,
+    recalculando_mes: false,
   };
   if (valor <= 0 || limite <= 0) return empty;
 
   const m = String(month).padStart(2, "0");
   const deadline = `${year}-${m}-${String(limite).padStart(2, "0")}`;
   const corte = todayISO < deadline ? todayISO : deadline;
-  const realizado = earnings
-    .filter((item) => item.date <= corte)
-    .reduce((sum, item) => sum + (item.gross_amount || 0), 0);
+  const somaAte = (limiteISO: string) =>
+    earnings
+      .filter((item) => item.date <= limiteISO)
+      .reduce((sum, item) => sum + (item.gross_amount || 0), 0);
+  const realizado = somaAte(corte);
   const sameMonth = todayISO.slice(0, 7) === `${year}-${m}`;
   const emAndamento = sameMonth && todayISO <= deadline;
   const vencido = todayISO > deadline;
@@ -156,7 +160,13 @@ export function montarMarco(
   const faltam = Math.max(valor - realizado, 0);
   const remaining = working.filter((iso) => iso >= todayISO && iso <= deadline);
   const cobrando = emAndamento && !atingida && remaining.length > 0;
-  const metaDiaria = cobrando ? faltam / remaining.length : base;
+  const restamMes = working.filter((iso) => iso >= todayISO);
+  const faltamMes = Math.max((Number(totalMensal) || 0) - somaAte(todayISO), 0);
+  const recalculandoMes =
+    sameMonth && !cobrando && (vencido || atingida) && restamMes.length > 0;
+  let metaDiaria = base;
+  if (cobrando) metaDiaria = faltam / remaining.length;
+  else if (recalculandoMes) metaDiaria = faltamMes / restamMes.length;
   const progresso = valor === 0 ? 0 : (realizado / valor) * 100;
   return {
     ativo: true,
@@ -172,6 +182,7 @@ export function montarMarco(
     progresso_pct: roundMoney(Math.min(progresso, 999)),
     dias_restantes: remaining.length,
     meta_diaria: roundMoney(metaDiaria),
+    recalculando_mes: recalculandoMes,
   };
 }
 
@@ -223,7 +234,8 @@ export function calcularMetas(userId: number, year: number, month: number) {
     diasCalendario,
     earnings,
     todayISO,
-    metaDiariaBase
+    metaDiariaBase,
+    total
   );
   const metaDiaria = marco.meta_diaria;
   const metaSemanal = metaDiaria * diasSemana;

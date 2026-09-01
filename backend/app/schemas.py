@@ -152,6 +152,7 @@ class MarcoOut(BaseModel):
     progresso_pct: float = 0
     dias_restantes: int = 0
     meta_diaria: float = 0
+    recalculando_mes: bool = False
 
 
 class FixedExpenseIn(BaseModel):

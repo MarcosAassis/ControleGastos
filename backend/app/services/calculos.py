@@ -34,6 +34,17 @@ def _earning_amount(item) -> float:
     return float(getattr(item, "gross_amount", 0) or 0)
 
 
+def _soma_ganhos_ate(earnings: list, limite: date) -> float:
+    total = 0.0
+    for item in earnings:
+        item_date = _as_date(
+            getattr(item, "date", None) if not isinstance(item, dict) else item.get("date")
+        )
+        if item_date and item_date <= limite:
+            total += _earning_amount(item)
+    return total
+
+
 def montar_marco(
     year: int,
     month: int,
@@ -43,6 +54,7 @@ def montar_marco(
     earnings: list,
     today: date,
     meta_diaria_base: float,
+    total_mensal: float,
 ) -> dict:
     amount = max(float(amount or 0), 0)
     last = monthrange(year, month)[1]
@@ -66,17 +78,13 @@ def montar_marco(
         "progresso_pct": 0.0,
         "dias_restantes": 0,
         "meta_diaria": base,
+        "recalculando_mes": False,
     }
     if amount <= 0 or day <= 0:
         return empty
 
     deadline = date(year, month, day)
-    realized = 0.0
-    for item in earnings:
-        item_date = _as_date(getattr(item, "date", None) if not isinstance(item, dict) else item.get("date"))
-        if item_date and item_date <= min(today, deadline):
-            realized += _earning_amount(item)
-
+    realized = _soma_ganhos_ate(earnings, min(today, deadline))
     same_month = today.year == year and today.month == month
     em_andamento = same_month and today <= deadline
     vencido = (today.year, today.month, today.day) > (year, month, day)
@@ -84,7 +92,15 @@ def montar_marco(
     faltam = max(amount - realized, 0.0)
     remaining = [d for d in working if today <= d <= deadline]
     cobrando = em_andamento and not atingida and len(remaining) > 0
-    meta_diaria = (faltam / len(remaining)) if cobrando else base
+    restam_mes = [d for d in working if d >= today]
+    faltam_mes = max(float(total_mensal or 0) - _soma_ganhos_ate(earnings, today), 0.0)
+    recalculando_mes = same_month and not cobrando and (vencido or atingida) and len(restam_mes) > 0
+    if cobrando:
+        meta_diaria = faltam / len(remaining)
+    elif recalculando_mes:
+        meta_diaria = faltam_mes / len(restam_mes)
+    else:
+        meta_diaria = base
     progresso = 0.0 if amount == 0 else (realized / amount) * 100
     return {
         "ativo": True,
@@ -100,6 +116,7 @@ def montar_marco(
         "progresso_pct": _round_money(min(progresso, 999)),
         "dias_restantes": len(remaining),
         "meta_diaria": _round_money(meta_diaria),
+        "recalculando_mes": recalculando_mes,
     }
 
 
@@ -182,6 +199,7 @@ def calcular_metas(
         earnings,
         today,
         meta_diaria_base,
+        total,
     )
     meta_diaria = marco["meta_diaria"]
     meta_semanal = meta_diaria * dias_semana

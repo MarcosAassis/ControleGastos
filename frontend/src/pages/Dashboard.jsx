@@ -185,17 +185,22 @@ export default function Dashboard() {
 
       <section className="grid grid-cols-2 gap-3">
         <MiniCard
-          title={metas.marco?.cobrando ? "Meta diária (ritmo)" : "Meta diária"}
+          title={
+            metas.marco?.cobrando
+              ? "Meta diária até o prazo"
+              : metas.marco?.recalculando_mes
+                ? "Meta diária do mês"
+                : "Meta diária"
+          }
           value={brl(metas.meta_bruta_diaria)}
           to="/metas"
           hint={
             metas.marco?.cobrando
-              ? `Até o dia ${metas.marco.dia}`
-              : Number(metas.folgas_aplicadas) > 0
-                ? `${metas.dias_trabalhados_mes} dias · ${metas.folgas_aplicadas} folga(s)`
-                : Number(metas.meta_diaria_base) &&
-                    Number(metas.meta_diaria_base) !== Number(metas.meta_bruta_diaria)
-                  ? `Mês: ${brl(metas.meta_diaria_base)}/dia`
+              ? `Substitui a do mês até o dia ${metas.marco.dia}`
+              : metas.marco?.recalculando_mes
+                ? "Recalculada com o que falta no mês"
+                : Number(metas.folgas_aplicadas) > 0
+                  ? `${metas.dias_trabalhados_mes} dias · ${metas.folgas_aplicadas} folga(s)`
                   : null
           }
         />
@@ -223,16 +228,23 @@ function CheckpointCard({ marco }) {
   let status = `Faturar ${brl(marco.valor)} até o dia ${marco.dia}.`;
   let tone = "amber";
   if (marco.cobrando) {
-    status = `Faltam ${brl(marco.faltam)} em ${marco.dias_restantes} dia${
-      marco.dias_restantes === 1 ? "" : "s"
-    } de rua. Meta do dia: ${brl(marco.meta_diaria)}.`;
+    status = `No lugar da meta do mês até o dia ${marco.dia}: faltam ${brl(marco.faltam)} em ${
+      marco.dias_restantes
+    } dia${marco.dias_restantes === 1 ? "" : "s"} de rua (${brl(marco.meta_diaria)}/dia).`;
+  } else if (marco.recalculando_mes && marco.atingida) {
+    status =
+      "Prazo batido. A diária agora é o que falta na meta do mês, dividido pelos dias que restam.";
+    tone = "lime";
+  } else if (marco.recalculando_mes) {
+    status =
+      "O prazo passou. A diária agora é o que falta na meta do mês, dividido pelos dias que restam.";
   } else if (marco.atingida) {
-    status = `Bateu ${brl(marco.realizado)} até o dia ${marco.dia}. O mês segue a meta diária normal.`;
+    status = `Bateu ${brl(marco.realizado)} até o dia ${marco.dia}.`;
     tone = "lime";
   } else if (marco.vencido) {
-    status = `Não chegou a ${brl(marco.valor)} até o dia ${marco.dia}. O resto do mês não é cobrado a mais.`;
+    status = `Não chegou a ${brl(marco.valor)} até o dia ${marco.dia}.`;
   } else {
-    status = `Quando o mês começar, o app cobra ${brl(marco.valor)} até o dia ${marco.dia}.`;
+    status = `Quando o mês começar, a diária do prazo entra no lugar da do mês até o dia ${marco.dia}.`;
   }
   return (
     <section className={`card space-y-3 ${marco.atingida ? "border-lime/40" : "border-amber-300/20"}`}>

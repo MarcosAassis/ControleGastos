@@ -102,7 +102,7 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
               {isOpen
                 ? "Fim de turno do dia atual"
                 : metas.marco?.cobrando
-                  ? `Ritmo até o dia ${metas.marco.dia}: ${brl(hoje?.meta_diaria || metas.meta_bruta_diaria)}`
+                  ? `Até o dia ${metas.marco.dia}: ${brl(hoje?.meta_diaria || metas.meta_bruta_diaria)} (no lugar da do mês)`
                   : "Toque no raio para lançar o turno"}
             </p>
           </button>
