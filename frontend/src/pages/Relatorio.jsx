@@ -146,6 +146,12 @@ export default function Relatorio() {
               Meta de faturamento: {brl(metas.meta_bruta_mensal)} ({pct(progresso.meta_mensal_pct)})
             </p>
           )}
+          {metas?.marco?.ativo && (
+            <p>
+              Meta até o dia {metas.marco.dia}: {brl(metas.marco.realizado)} de {brl(metas.marco.valor)}
+              {metas.marco.atingida ? " (atingida)" : metas.marco.vencido ? " (não atingida)" : ""}
+            </p>
+          )}
           {eficiencia?.rs_por_km != null && <p>Rendimento: {brl(eficiencia.rs_por_km)}/km</p>}
           {eficiencia?.rs_por_hora != null && <p>Rendimento: {brl(eficiencia.rs_por_hora)}/h</p>}
           {dash.combustivel?.km_per_liter != null && (

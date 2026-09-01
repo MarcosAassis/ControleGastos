@@ -110,6 +110,71 @@ export function totalFixedExpenses(userId: number, year: number, month: number):
   return roundMoney(total);
 }
 
+export function montarMarco(
+  year: number,
+  month: number,
+  amount: number,
+  day: number,
+  working: string[],
+  earnings: { date: string; gross_amount: number }[],
+  todayISO: string,
+  metaDiariaBase: number
+) {
+  const lastDay = new Date(year, month, 0).getDate();
+  const valor = Math.max(Number(amount) || 0, 0);
+  let limite = Number.parseInt(String(day || 0), 10);
+  if (!Number.isFinite(limite)) limite = 0;
+  limite = Math.max(0, Math.min(limite, lastDay));
+  const base = roundMoney(metaDiariaBase);
+  const empty = {
+    ativo: false,
+    cobrando: false,
+    em_andamento: false,
+    vencido: false,
+    atingida: false,
+    dia: 0,
+    valor: 0,
+    data: null as string | null,
+    realizado: 0,
+    faltam: 0,
+    progresso_pct: 0,
+    dias_restantes: 0,
+    meta_diaria: base,
+  };
+  if (valor <= 0 || limite <= 0) return empty;
+
+  const m = String(month).padStart(2, "0");
+  const deadline = `${year}-${m}-${String(limite).padStart(2, "0")}`;
+  const corte = todayISO < deadline ? todayISO : deadline;
+  const realizado = earnings
+    .filter((item) => item.date <= corte)
+    .reduce((sum, item) => sum + (item.gross_amount || 0), 0);
+  const sameMonth = todayISO.slice(0, 7) === `${year}-${m}`;
+  const emAndamento = sameMonth && todayISO <= deadline;
+  const vencido = todayISO > deadline;
+  const atingida = realizado + 0.001 >= valor;
+  const faltam = Math.max(valor - realizado, 0);
+  const remaining = working.filter((iso) => iso >= todayISO && iso <= deadline);
+  const cobrando = emAndamento && !atingida && remaining.length > 0;
+  const metaDiaria = cobrando ? faltam / remaining.length : base;
+  const progresso = valor === 0 ? 0 : (realizado / valor) * 100;
+  return {
+    ativo: true,
+    cobrando,
+    em_andamento: emAndamento,
+    vencido,
+    atingida,
+    dia: limite,
+    valor: roundMoney(valor),
+    data: deadline,
+    realizado: roundMoney(realizado),
+    faltam: roundMoney(faltam),
+    progresso_pct: roundMoney(Math.min(progresso, 999)),
+    dias_restantes: remaining.length,
+    meta_diaria: roundMoney(metaDiaria),
+  };
+}
+
 export function calcularMetas(userId: number, year: number, month: number) {
   const routine = getOrCreateRoutine(userId);
   const { goals: settings, isCustom } = getGoalsForMonth(userId, year, month);
@@ -142,7 +207,25 @@ export function calcularMetas(userId: number, year: number, month: number) {
     settings.monthly_net_profit +
     settings.monthly_contingency +
     provisao.provisao_descanso;
-  const metaDiaria = total / dias;
+  const metaDiariaBase = total / dias;
+  const earnings = dbInstance.db.daily_earnings.filter(
+    (e) => e.user_id === userId && e.date >= start && e.date <= end
+  );
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
+  const marco = montarMarco(
+    year,
+    month,
+    Number(settings.checkpoint_amount) || 0,
+    Number(settings.checkpoint_day) || 0,
+    diasCalendario,
+    earnings,
+    todayISO,
+    metaDiariaBase
+  );
+  const metaDiaria = marco.meta_diaria;
   const metaSemanal = metaDiaria * diasSemana;
   const metaHora = metaDiaria / horas;
   const custoFixoDiario = gastosFixos / dias;
@@ -159,6 +242,7 @@ export function calcularMetas(userId: number, year: number, month: number) {
     meta_bruta_mensal: roundMoney(total),
     meta_bruta_semanal: roundMoney(metaSemanal),
     meta_bruta_diaria: roundMoney(metaDiaria),
+    meta_diaria_base: roundMoney(metaDiariaBase),
     meta_por_hora: roundMoney(metaHora),
     formula:
       "(Gastos Fixos + Lucro Líquido + Reserva + Provisão 13º/férias) / Dias trabalhados no mês",
@@ -174,6 +258,9 @@ export function calcularMetas(userId: number, year: number, month: number) {
     provisao_13: provisao.provisao_13,
     provisao_ferias: provisao.provisao_ferias,
     provisao_descanso: provisao.provisao_descanso,
+    checkpoint_amount: roundMoney(Number(settings.checkpoint_amount) || 0),
+    checkpoint_day: Number(settings.checkpoint_day) || 0,
+    marco,
   };
 }
 

@@ -357,7 +357,7 @@ async function startServer() {
   });
 
   // ================= METAS ROUTES =================
-  function goalConfigOut(goals: { id: number; monthly_net_profit: number; monthly_contingency: number; updated_at: string; include_13th?: boolean; vacation_days_year?: number; planned_rest_days?: number }, year: number, month: number, isCustom: boolean) {
+  function goalConfigOut(goals: { id: number; monthly_net_profit: number; monthly_contingency: number; updated_at: string; include_13th?: boolean; vacation_days_year?: number; planned_rest_days?: number; checkpoint_amount?: number; checkpoint_day?: number }, year: number, month: number, isCustom: boolean) {
     const { include13th, vacationDaysYear, plannedRestDays } = camposProvisao(goals);
     return {
       id: goals.id,
@@ -366,6 +366,8 @@ async function startServer() {
       include_13th: include13th,
       vacation_days_year: vacationDaysYear,
       planned_rest_days: plannedRestDays,
+      checkpoint_amount: Number(goals.checkpoint_amount) || 0,
+      checkpoint_day: Number(goals.checkpoint_day) || 0,
       year,
       month,
       is_custom: isCustom,
@@ -373,13 +375,21 @@ async function startServer() {
     };
   }
 
-  function applyGoalFields(target: { monthly_net_profit: number; monthly_contingency: number; include_13th?: boolean; vacation_days_year?: number; planned_rest_days?: number; updated_at: string }, body: any) {
+  function applyGoalFields(target: { monthly_net_profit: number; monthly_contingency: number; include_13th?: boolean; vacation_days_year?: number; planned_rest_days?: number; checkpoint_amount?: number; checkpoint_day?: number; updated_at: string }, body: any) {
     const { include13th, vacationDaysYear, plannedRestDays } = camposProvisao(body || {});
     target.monthly_net_profit = Number(body.monthly_net_profit) || 0;
     target.monthly_contingency = Number(body.monthly_contingency) || 0;
     target.include_13th = include13th;
     target.vacation_days_year = vacationDaysYear;
     target.planned_rest_days = plannedRestDays;
+    let checkpointAmount = Number(body.checkpoint_amount) || 0;
+    let checkpointDay = Number(body.checkpoint_day) || 0;
+    if (checkpointAmount <= 0 || checkpointDay <= 0) {
+      checkpointAmount = 0;
+      checkpointDay = 0;
+    }
+    target.checkpoint_amount = checkpointAmount;
+    target.checkpoint_day = checkpointDay;
     target.updated_at = new Date().toISOString();
   }
 
@@ -649,15 +659,22 @@ async function startServer() {
     const month = Number(req.query.mes) || now.getMonth() + 1;
     const { start, end } = monthRange(year, month);
     const metas = calcularMetas(req.user!.id, year, month);
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+      now.getDate()
+    ).padStart(2, "0")}`;
 
     const items = dbInstance.db.daily_earnings
       .filter((e) => e.user_id === req.user!.id && e.date >= start && e.date <= end)
       .sort((a, b) => b.date.localeCompare(a.date));
 
     const result = items.map((e) => {
-      const meta = metas.meta_bruta_diaria;
+      const meta =
+        e.date === today
+          ? metas.meta_bruta_diaria
+          : metas.meta_diaria_base ?? metas.meta_bruta_diaria;
       const faltam = Math.max(meta - e.gross_amount, 0);
       const atingida = e.gross_amount >= meta && meta > 0;
+      const progresso = meta === 0 ? (e.gross_amount > 0 ? 100 : 0) : (e.gross_amount / meta) * 100;
       return {
         id: e.id,
         date: e.date,
@@ -670,6 +687,7 @@ async function startServer() {
         meta_diaria: meta,
         atingida,
         faltam: roundMoney(faltam),
+        progresso_pct: roundMoney(Math.min(progresso, 999)),
       };
     });
 
@@ -682,7 +700,6 @@ async function startServer() {
       return res.status(400).json({ detail: "Data e valor bruto são obrigatórios." });
     }
     const [y, m] = dateStr.split("-").map(Number);
-    const metas = calcularMetas(req.user!.id, y, m);
 
     let earning = dbInstance.db.daily_earnings.find(
       (e) => e.user_id === req.user!.id && e.date === dateStr
@@ -711,9 +728,18 @@ async function startServer() {
     }
     dbInstance.save();
 
-    const meta = metas.meta_bruta_diaria;
+    const metas = calcularMetas(req.user!.id, y, m);
+    const nowDate = new Date();
+    const today = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, "0")}-${String(
+      nowDate.getDate()
+    ).padStart(2, "0")}`;
+    const meta =
+      earning.date === today
+        ? metas.meta_bruta_diaria
+        : metas.meta_diaria_base ?? metas.meta_bruta_diaria;
     const faltam = Math.max(meta - earning.gross_amount, 0);
     const atingida = earning.gross_amount >= meta && meta > 0;
+    const progresso = meta === 0 ? (earning.gross_amount > 0 ? 100 : 0) : (earning.gross_amount / meta) * 100;
 
     return res.json({
       id: earning.id,
@@ -727,6 +753,7 @@ async function startServer() {
       meta_diaria: meta,
       atingida,
       faltam: roundMoney(faltam),
+      progresso_pct: roundMoney(Math.min(progresso, 999)),
     });
   });
 

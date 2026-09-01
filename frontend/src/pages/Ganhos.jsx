@@ -24,11 +24,14 @@ export default function Ganhos() {
   const [error, setError] = useState("");
 
   const load = async () => {
-    const rows = await api.ganhos.list(year, month);
+    const [rows, metas] = await Promise.all([
+      api.ganhos.list(year, month),
+      api.metas.calculo(year, month),
+    ]);
     setLista(rows);
     const hoje = rows.find((item) => item.date === todayISO());
     if (hoje) {
-      setStatus(hoje);
+      setStatus({ ...hoje, marco: metas.marco });
       setForm({
         date: hoje.date,
         gross_amount: String(hoje.gross_amount),
@@ -37,13 +40,13 @@ export default function Ganhos() {
         notes: hoje.notes || "",
       });
     } else {
-      const metas = await api.metas.calculo(year, month);
       setStatus({
         gross_amount: 0,
         meta_diaria: metas.meta_bruta_diaria,
         faltam: metas.meta_bruta_diaria,
         atingida: false,
         progresso_pct: 0,
+        marco: metas.marco,
       });
     }
   };
@@ -103,6 +106,8 @@ export default function Ganhos() {
           faltam={status.faltam}
           atingida={status.atingida}
           progresso={status.progresso_pct}
+          cobrando={Boolean(status.marco?.cobrando) && form.date === todayISO()}
+          prazoDia={status.marco?.dia}
         />
       )}
 

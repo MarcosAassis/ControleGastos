@@ -121,6 +121,14 @@ def migrate_schema():
                 conn.execute(
                     text(f"ALTER TABLE {table} ADD COLUMN planned_rest_days INTEGER DEFAULT 0")
                 )
+            if "checkpoint_amount" not in cols:
+                conn.execute(
+                    text(f"ALTER TABLE {table} ADD COLUMN checkpoint_amount FLOAT DEFAULT 0")
+                )
+            if "checkpoint_day" not in cols:
+                conn.execute(
+                    text(f"ALTER TABLE {table} ADD COLUMN checkpoint_day INTEGER DEFAULT 0")
+                )
 
         var_cols = _table_columns(conn, "variable_expenses")
         if var_cols:

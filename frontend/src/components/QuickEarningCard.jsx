@@ -99,7 +99,11 @@ export default function QuickEarningCard({ hoje, metas, onSaved }) {
               )}
             </div>
             <p className="text-xs text-emerald-100/70">
-              {isOpen ? "Fim de turno do dia atual" : "Toque no raio para lançar o turno"}
+              {isOpen
+                ? "Fim de turno do dia atual"
+                : metas.marco?.cobrando
+                  ? `Ritmo até o dia ${metas.marco.dia}: ${brl(hoje?.meta_diaria || metas.meta_bruta_diaria)}`
+                  : "Toque no raio para lançar o turno"}
             </p>
           </button>
         </div>

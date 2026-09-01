@@ -20,6 +20,8 @@ export interface GoalSetting {
   include_13th?: boolean;
   vacation_days_year?: number;
   planned_rest_days?: number;
+  checkpoint_amount?: number;
+  checkpoint_day?: number;
   updated_at: string;
 }
 
@@ -33,6 +35,8 @@ export interface MonthlyGoal {
   include_13th?: boolean;
   vacation_days_year?: number;
   planned_rest_days?: number;
+  checkpoint_amount?: number;
+  checkpoint_day?: number;
   updated_at: string;
 }
 

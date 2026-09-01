@@ -15,6 +15,8 @@ export default function Metas() {
     include_13th: false,
     vacation_days_year: "0",
     planned_rest_days: "0",
+    checkpoint_amount: "",
+    checkpoint_day: "",
   });
   const [isCustom, setIsCustom] = useState(false);
   const [calc, setCalc] = useState(null);
@@ -32,6 +34,8 @@ export default function Metas() {
       include_13th: Boolean(cfg.include_13th),
       vacation_days_year: String(cfg.vacation_days_year ?? 0),
       planned_rest_days: String(cfg.planned_rest_days ?? 0),
+      checkpoint_amount: cfg.checkpoint_amount ? String(cfg.checkpoint_amount) : "",
+      checkpoint_day: cfg.checkpoint_day ? String(cfg.checkpoint_day) : "",
     });
     setIsCustom(Boolean(cfg.is_custom));
     setCalc(metas);
@@ -55,13 +59,30 @@ export default function Metas() {
     );
     const { dias, aplicadas } = diasAposFolgas(diasCal, config.planned_rest_days);
     const total = fixos + lucro + reserva + prov.provisao_descanso;
+    const diaria = dias ? total / dias : 0;
+    const checkpointAmount = Number(config.checkpoint_amount || 0);
+    const checkpointDay = Math.round(Number(config.checkpoint_day || 0));
+    const marco = calc?.marco;
+    const sameDeadline = Boolean(
+      marco?.ativo && checkpointAmount > 0 && checkpointDay > 0 && marco.dia === checkpointDay,
+    );
+    const faltamMarco = sameDeadline
+      ? Math.max(checkpointAmount - Number(marco.realizado || 0), 0)
+      : 0;
+    const diariaRitmo =
+      sameDeadline && marco.cobrando && marco.dias_restantes
+        ? faltamMarco / marco.dias_restantes
+        : null;
     return {
       ...prov,
       dias,
       aplicadas,
       diasCal,
       total,
-      diaria: dias ? total / dias : 0,
+      diaria,
+      checkpointAmount,
+      checkpointDay,
+      diariaRitmo,
     };
   }, [config, calc]);
 
@@ -70,8 +91,26 @@ export default function Metas() {
     const reserva = parseAmount(config.monthly_contingency, { label: "reserva" });
     const ferias = parseAmount(config.vacation_days_year, { max: 60, label: "dias de férias" });
     const folgas = parseAmount(config.planned_rest_days, { max: 20, label: "folgas" });
-    if (!lucro.ok || !reserva.ok || !ferias.ok || !folgas.ok) {
-      setMessage(lucro.error || reserva.error || ferias.error || folgas.error);
+    const checkpointAmount = parseAmount(config.checkpoint_amount, { label: "meta até o dia" });
+    const checkpointDay = parseAmount(config.checkpoint_day, { max: 31, label: "dia do prazo" });
+    if (!lucro.ok || !reserva.ok || !ferias.ok || !folgas.ok || !checkpointAmount.ok || !checkpointDay.ok) {
+      setMessage(
+        lucro.error ||
+          reserva.error ||
+          ferias.error ||
+          folgas.error ||
+          checkpointAmount.error ||
+          checkpointDay.error,
+      );
+      return;
+    }
+    const dia = Math.round(checkpointDay.value);
+    if (checkpointAmount.value > 0 && dia <= 0) {
+      setMessage("Informe o dia do mês para essa meta.");
+      return;
+    }
+    if (dia > 0 && checkpointAmount.value <= 0) {
+      setMessage("Informe o valor da meta até esse dia.");
       return;
     }
     setSaving(true);
@@ -84,6 +123,8 @@ export default function Metas() {
           include_13th: Boolean(config.include_13th),
           vacation_days_year: Math.round(ferias.value),
           planned_rest_days: Math.round(folgas.value),
+          checkpoint_amount: checkpointAmount.value,
+          checkpoint_day: dia,
           year,
           month,
           save_as_default: saveAsDefault,
@@ -154,6 +195,53 @@ export default function Metas() {
             value={config.monthly_contingency}
             onChange={(e) => setConfig({ ...config, monthly_contingency: e.target.value })}
           />
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 space-y-3">
+          <div>
+            <h3 className="font-display font-semibold">Meta até um dia do mês</h3>
+            <p className="mt-1 text-sm text-emerald-100/70">
+              O app divide o que ainda falta por cada dia de rua até essa data. Quando bater ou
+              passar o prazo, volta a meta diária do mês.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Faturar até o prazo (R$)</label>
+              <input
+                {...moneyFieldProps}
+                className="field"
+                placeholder="Ex.: 2500"
+                value={config.checkpoint_amount}
+                onChange={(e) => setConfig({ ...config, checkpoint_amount: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Dia do mês</label>
+              <input
+                {...intFieldProps}
+                min="0"
+                max="31"
+                className="field"
+                placeholder="Ex.: 15"
+                value={config.checkpoint_day}
+                onChange={(e) => setConfig({ ...config, checkpoint_day: e.target.value })}
+              />
+            </div>
+          </div>
+          {preview.diariaRitmo != null && (
+            <p className="text-sm">
+              Ritmo agora:{" "}
+              <span className="font-display font-bold">{brl(preview.diariaRitmo)}</span>
+              /dia até o dia {preview.checkpointDay}
+              {Number(preview.diaria) > 0 ? (
+                <span className="text-emerald-100/60">
+                  {" "}
+                  · mês: {brl(preview.diaria)}/dia
+                </span>
+              ) : null}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-2.5 pt-1">
@@ -292,9 +380,18 @@ export default function Metas() {
           <div className="grid grid-cols-2 gap-3">
             <GoalCard title="Bruto mensal" value={brl(calc.meta_bruta_mensal)} highlight />
             <GoalCard title="Bruto semanal" value={brl(calc.meta_bruta_semanal)} />
-            <GoalCard title="Bruto diário" value={brl(calc.meta_bruta_diaria)} highlight />
+            <GoalCard
+              title={calc.marco?.cobrando ? "Diária no ritmo" : "Bruto diário"}
+              value={brl(calc.meta_bruta_diaria)}
+              highlight
+            />
             <GoalCard title="Por hora" value={brl(calc.meta_por_hora)} />
           </div>
+          {calc.marco?.ativo && Number(calc.meta_diaria_base) > 0 && calc.marco.cobrando && (
+            <p className="text-sm text-emerald-100/70">
+              Meta do mês, sem o prazo: {brl(calc.meta_diaria_base)} por dia.
+            </p>
+          )}
 
           <section className="card">
             <p className="text-xs text-emerald-200/70">Custo fixo por dia rodado</p>

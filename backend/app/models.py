@@ -73,6 +73,8 @@ class GoalSettings(Base):
     include_13th: Mapped[bool] = mapped_column(Boolean, default=False)
     vacation_days_year: Mapped[int] = mapped_column(Integer, default=0)
     planned_rest_days: Mapped[int] = mapped_column(Integer, default=0)
+    checkpoint_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    checkpoint_day: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -91,6 +93,8 @@ class MonthlyGoal(Base):
     include_13th: Mapped[bool] = mapped_column(Boolean, default=False)
     vacation_days_year: Mapped[int] = mapped_column(Integer, default=0)
     planned_rest_days: Mapped[int] = mapped_column(Integer, default=0)
+    checkpoint_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    checkpoint_day: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

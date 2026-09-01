@@ -44,6 +44,11 @@ export function buildMonthSummaryText({ userName, year, month, dash, eficiencia 
           m.folgas_aplicadas === 1 ? "" : "s"
         })`
       : "",
+    m.marco?.ativo
+      ? `Meta até o dia ${m.marco.dia}: ${brl(m.marco.realizado)} de ${brl(m.marco.valor)}${
+          m.marco.atingida ? " (atingida)" : m.marco.vencido ? " (não atingida)" : ""
+        }`
+      : "",
     p.contas_pagas != null
       ? `Contas: ${p.contas_pagas} pagas · ${p.contas_pendentes} pendentes`
       : "",

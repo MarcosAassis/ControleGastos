@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -34,11 +34,14 @@ def list_ganhos(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    today = datetime.now()
-    year = ano or today.year
-    month = mes or today.month
+    now = datetime.now()
+    year = ano or now.year
+    month = mes or now.month
     start, end = month_range(year, month)
-    meta_diaria = calcular_metas(db, user.id, year, month)["meta_bruta_diaria"]
+    metas = calcular_metas(db, user.id, year, month)
+    meta_hoje = metas["meta_bruta_diaria"]
+    meta_base = metas.get("meta_diaria_base", meta_hoje)
+    today = date.today()
     rows = (
         db.query(DailyEarning)
         .filter(
@@ -49,7 +52,9 @@ def list_ganhos(
         .order_by(DailyEarning.date.desc())
         .all()
     )
-    return [_with_goal(item, meta_diaria) for item in rows]
+    return [
+        _with_goal(item, meta_hoje if item.date == today else meta_base) for item in rows
+    ]
 
 
 @router.post("", response_model=DailyEarningOut)
@@ -74,10 +79,13 @@ def upsert_ganho(
         db.add(earning)
     db.commit()
     db.refresh(earning)
-    meta_diaria = calcular_metas(db, user.id, earning.date.year, earning.date.month)[
-        "meta_bruta_diaria"
-    ]
-    return _with_goal(earning, meta_diaria)
+    metas = calcular_metas(db, user.id, earning.date.year, earning.date.month)
+    meta = (
+        metas["meta_bruta_diaria"]
+        if earning.date == date.today()
+        else metas.get("meta_diaria_base", metas["meta_bruta_diaria"])
+    )
+    return _with_goal(earning, meta)
 
 
 @router.delete("/{earning_id}", status_code=204)

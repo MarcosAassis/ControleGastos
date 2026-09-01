@@ -23,6 +23,8 @@ def _goal_out(goals, *, year=None, month=None, is_custom=False) -> GoalSettingsO
         include_13th=include_13th,
         vacation_days_year=vacation_days_year,
         planned_rest_days=planned_rest_days,
+        checkpoint_amount=float(getattr(goals, "checkpoint_amount", 0) or 0),
+        checkpoint_day=int(getattr(goals, "checkpoint_day", 0) or 0),
         year=year,
         month=month,
         is_custom=is_custom,
@@ -37,6 +39,11 @@ def _apply_goals(target, payload: GoalSettingsIn) -> None:
     target.include_13th = include_13th
     target.vacation_days_year = vacation_days_year
     target.planned_rest_days = planned_rest_days
+    target.checkpoint_amount = float(payload.checkpoint_amount or 0)
+    target.checkpoint_day = int(payload.checkpoint_day or 0)
+    if target.checkpoint_amount <= 0 or target.checkpoint_day <= 0:
+        target.checkpoint_amount = 0
+        target.checkpoint_day = 0
     target.updated_at = datetime.utcnow()
 
 

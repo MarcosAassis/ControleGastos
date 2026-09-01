@@ -1,5 +1,5 @@
 from calendar import monthrange
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,95 @@ from .provisao import campos_provisao, dias_apos_folgas, montar_provisao
 
 def _round_money(value: float) -> float:
     return round(float(value or 0), 2)
+
+
+def _as_date(value) -> date | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    raw = str(value)[:10]
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        return None
+
+
+def _earning_amount(item) -> float:
+    if isinstance(item, dict):
+        return float(item.get("gross_amount") or 0)
+    return float(getattr(item, "gross_amount", 0) or 0)
+
+
+def montar_marco(
+    year: int,
+    month: int,
+    amount: float,
+    day: int,
+    working: list[date],
+    earnings: list,
+    today: date,
+    meta_diaria_base: float,
+) -> dict:
+    amount = max(float(amount or 0), 0)
+    last = monthrange(year, month)[1]
+    try:
+        day = int(day or 0)
+    except (TypeError, ValueError):
+        day = 0
+    day = max(0, min(day, last))
+    base = _round_money(meta_diaria_base)
+    empty = {
+        "ativo": False,
+        "cobrando": False,
+        "em_andamento": False,
+        "vencido": False,
+        "atingida": False,
+        "dia": 0,
+        "valor": 0.0,
+        "data": None,
+        "realizado": 0.0,
+        "faltam": 0.0,
+        "progresso_pct": 0.0,
+        "dias_restantes": 0,
+        "meta_diaria": base,
+    }
+    if amount <= 0 or day <= 0:
+        return empty
+
+    deadline = date(year, month, day)
+    realized = 0.0
+    for item in earnings:
+        item_date = _as_date(getattr(item, "date", None) if not isinstance(item, dict) else item.get("date"))
+        if item_date and item_date <= min(today, deadline):
+            realized += _earning_amount(item)
+
+    same_month = today.year == year and today.month == month
+    em_andamento = same_month and today <= deadline
+    vencido = (today.year, today.month, today.day) > (year, month, day)
+    atingida = realized + 0.001 >= amount
+    faltam = max(amount - realized, 0.0)
+    remaining = [d for d in working if today <= d <= deadline]
+    cobrando = em_andamento and not atingida and len(remaining) > 0
+    meta_diaria = (faltam / len(remaining)) if cobrando else base
+    progresso = 0.0 if amount == 0 else (realized / amount) * 100
+    return {
+        "ativo": True,
+        "cobrando": cobrando,
+        "em_andamento": em_andamento,
+        "vencido": vencido,
+        "atingida": atingida,
+        "dia": day,
+        "valor": _round_money(amount),
+        "data": deadline.isoformat(),
+        "realizado": _round_money(realized),
+        "faltam": _round_money(faltam),
+        "progresso_pct": _round_money(min(progresso, 999)),
+        "dias_restantes": len(remaining),
+        "meta_diaria": _round_money(meta_diaria),
+    }
 
 
 def month_range(year: int, month: int) -> tuple[date, date]:
@@ -66,7 +155,35 @@ def calcular_metas(
         + settings.monthly_contingency
         + provisao["provisao_descanso"]
     )
-    meta_diaria = total / dias
+    meta_diaria_base = total / dias
+    earnings = (
+        db.query(DailyEarning)
+        .filter(
+            DailyEarning.user_id == user_id,
+            DailyEarning.date >= start,
+            DailyEarning.date <= end,
+        )
+        .all()
+    )
+    try:
+        checkpoint_amount = float(getattr(settings, "checkpoint_amount", 0) or 0)
+    except (TypeError, ValueError):
+        checkpoint_amount = 0.0
+    try:
+        checkpoint_day = int(getattr(settings, "checkpoint_day", 0) or 0)
+    except (TypeError, ValueError):
+        checkpoint_day = 0
+    marco = montar_marco(
+        year,
+        month,
+        checkpoint_amount,
+        checkpoint_day,
+        dias_calendario,
+        earnings,
+        today,
+        meta_diaria_base,
+    )
+    meta_diaria = marco["meta_diaria"]
     meta_semanal = meta_diaria * dias_semana
     meta_hora = meta_diaria / horas
     custo_fixo_diario = gastos_fixos / dias
@@ -83,6 +200,7 @@ def calcular_metas(
         "meta_bruta_mensal": _round_money(total),
         "meta_bruta_semanal": _round_money(meta_semanal),
         "meta_bruta_diaria": _round_money(meta_diaria),
+        "meta_diaria_base": _round_money(meta_diaria_base),
         "meta_por_hora": _round_money(meta_hora),
         "formula": (
             "(Gastos Fixos + Lucro Líquido + Reserva + Provisão 13º/férias) "
@@ -100,6 +218,9 @@ def calcular_metas(
         "provisao_13": provisao["provisao_13"],
         "provisao_ferias": provisao["provisao_ferias"],
         "provisao_descanso": provisao["provisao_descanso"],
+        "checkpoint_amount": _round_money(checkpoint_amount),
+        "checkpoint_day": checkpoint_day if checkpoint_amount and checkpoint_day else 0,
+        "marco": marco,
     }
 
 

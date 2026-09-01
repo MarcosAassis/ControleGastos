@@ -2,7 +2,7 @@ import { CheckCircle2, CircleAlert } from "lucide-react";
 import { brl } from "../utils/format.js";
 import ProgressBar from "./ProgressBar.jsx";
 
-export default function GoalBanner({ ganho, meta, faltam, atingida, progresso }) {
+export default function GoalBanner({ ganho, meta, faltam, atingida, progresso, cobrando, prazoDia }) {
   if (!Number(meta)) return null;
   return (
     <section
@@ -14,6 +14,7 @@ export default function GoalBanner({ ganho, meta, faltam, atingida, progresso })
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200/70">
             Meta do dia
+            {cobrando && prazoDia ? ` · ritmo até o dia ${prazoDia}` : ""}
           </p>
           <p className="mt-1 font-display text-2xl font-bold">{brl(ganho)}</p>
           <p className="text-sm text-emerald-100/70">de {brl(meta)}</p>
@@ -32,7 +33,9 @@ export default function GoalBanner({ ganho, meta, faltam, atingida, progresso })
       <p className="mt-3 text-sm font-medium">
         {atingida
           ? "Parabéns, a meta do dia foi fechada."
-          : `Faltam ${brl(faltam)} para fechar a meta do dia.`}
+          : cobrando && prazoDia
+            ? `Faltam ${brl(faltam)} hoje para manter o ritmo até o dia ${prazoDia}.`
+            : `Faltam ${brl(faltam)} para fechar a meta do dia.`}
       </p>
     </section>
   );

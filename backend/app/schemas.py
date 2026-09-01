@@ -114,6 +114,8 @@ class GoalSettingsIn(BaseModel):
     include_13th: bool = False
     vacation_days_year: int = Field(default=0, ge=0, le=60)
     planned_rest_days: int = Field(default=0, ge=0, le=20)
+    checkpoint_amount: float = Field(default=0, ge=0)
+    checkpoint_day: int = Field(default=0, ge=0, le=31)
     year: int | None = None
     month: int | None = Field(default=None, ge=1, le=12)
     save_as_default: bool = False
@@ -126,12 +128,30 @@ class GoalSettingsOut(BaseModel):
     include_13th: bool = False
     vacation_days_year: int = 0
     planned_rest_days: int = 0
+    checkpoint_amount: float = 0
+    checkpoint_day: int = 0
     year: int | None = None
     month: int | None = None
     is_custom: bool = False
     updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class MarcoOut(BaseModel):
+    ativo: bool = False
+    cobrando: bool = False
+    em_andamento: bool = False
+    vencido: bool = False
+    atingida: bool = False
+    dia: int = 0
+    valor: float = 0
+    data: str | None = None
+    realizado: float = 0
+    faltam: float = 0
+    progresso_pct: float = 0
+    dias_restantes: int = 0
+    meta_diaria: float = 0
 
 
 class FixedExpenseIn(BaseModel):
@@ -232,3 +252,7 @@ class MetasOut(BaseModel):
     provisao_13: float = 0
     provisao_ferias: float = 0
     provisao_descanso: float = 0
+    checkpoint_amount: float = 0
+    checkpoint_day: int = 0
+    meta_diaria_base: float = 0
+    marco: MarcoOut | None = None

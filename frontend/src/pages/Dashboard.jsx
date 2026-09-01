@@ -37,8 +37,23 @@ export default function Dashboard() {
     const dayHit = Boolean(data.hoje.atingida && data.hoje.tem_lancamento);
     const monthHit =
       Number(data.progresso.meta_mensal_pct) >= 100 && Number(data.metas.meta_bruta_mensal) > 0;
+    const marco = data.metas.marco;
+    const checkpointKey = marco?.ativo ? `${year}-${month}-${marco.dia}` : "";
+    const checkpointHit = Boolean(marco?.ativo && marco.atingida);
+    const checkpointNew =
+      checkpointHit &&
+      checkpointKey &&
+      !sessionStorage.getItem(`uber_financas_celeb_checkpoint_${checkpointKey}`);
     const dayNew = dayHit && !sessionStorage.getItem(`uber_financas_celeb_day_${dayKey}`);
     const monthNew = monthHit && !sessionStorage.getItem(`uber_financas_celeb_month_${monthKey}`);
+    if (checkpointNew) {
+      celebrate({
+        kind: "checkpoint",
+        key: checkpointKey,
+        title: `Meta até o dia ${marco.dia} batida!`,
+        subtitle: `Você chegou a ${brl(marco.valor)} de faturamento no prazo.`,
+      });
+    }
     if (dayNew && monthNew) {
       celebrate({
         kind: "month",
@@ -110,7 +125,11 @@ export default function Dashboard() {
         faltam={hoje.faltam}
         atingida={hoje.atingida}
         progresso={hoje.progresso_pct}
+        cobrando={Boolean(metas.marco?.cobrando)}
+        prazoDia={metas.marco?.dia}
       />
+
+      <CheckpointCard marco={metas.marco} />
 
       <div className="grid grid-cols-2 gap-3">
         <Metric label="Faturamento" value={brl(realizado.faturamento_uber)} />
@@ -166,13 +185,18 @@ export default function Dashboard() {
 
       <section className="grid grid-cols-2 gap-3">
         <MiniCard
-          title="Meta diária"
+          title={metas.marco?.cobrando ? "Meta diária (ritmo)" : "Meta diária"}
           value={brl(metas.meta_bruta_diaria)}
           to="/metas"
           hint={
-            Number(metas.folgas_aplicadas) > 0
-              ? `${metas.dias_trabalhados_mes} dias · ${metas.folgas_aplicadas} folga(s)`
-              : null
+            metas.marco?.cobrando
+              ? `Até o dia ${metas.marco.dia}`
+              : Number(metas.folgas_aplicadas) > 0
+                ? `${metas.dias_trabalhados_mes} dias · ${metas.folgas_aplicadas} folga(s)`
+                : Number(metas.meta_diaria_base) &&
+                    Number(metas.meta_diaria_base) !== Number(metas.meta_bruta_diaria)
+                  ? `Mês: ${brl(metas.meta_diaria_base)}/dia`
+                  : null
           }
         />
         <MiniCard title="Custo fixo/dia" value={brl(metas.custo_fixo_diario)} to="/gastos" />
@@ -191,6 +215,37 @@ export default function Dashboard() {
         </p>
       </Link>
     </div>
+  );
+}
+
+function CheckpointCard({ marco }) {
+  if (!marco?.ativo) return null;
+  let status = `Faturar ${brl(marco.valor)} até o dia ${marco.dia}.`;
+  let tone = "amber";
+  if (marco.cobrando) {
+    status = `Faltam ${brl(marco.faltam)} em ${marco.dias_restantes} dia${
+      marco.dias_restantes === 1 ? "" : "s"
+    } de rua. Meta do dia: ${brl(marco.meta_diaria)}.`;
+  } else if (marco.atingida) {
+    status = `Bateu ${brl(marco.realizado)} até o dia ${marco.dia}. O mês segue a meta diária normal.`;
+    tone = "lime";
+  } else if (marco.vencido) {
+    status = `Não chegou a ${brl(marco.valor)} até o dia ${marco.dia}. O resto do mês não é cobrado a mais.`;
+  } else {
+    status = `Quando o mês começar, o app cobra ${brl(marco.valor)} até o dia ${marco.dia}.`;
+  }
+  return (
+    <section className={`card space-y-3 ${marco.atingida ? "border-lime/40" : "border-amber-300/20"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display font-semibold">Meta até o dia {marco.dia}</h2>
+        <span className="text-sm font-bold text-lime">{Math.min(marco.progresso_pct, 100).toFixed(0)}%</span>
+      </div>
+      <ProgressBar value={marco.progresso_pct} tone={tone === "lime" ? "lime" : "amber"} />
+      <p className="text-sm text-emerald-100/70">
+        {brl(marco.realizado)} de {brl(marco.valor)}
+      </p>
+      <p className="text-sm font-medium">{status}</p>
+    </section>
   );
 }
 
